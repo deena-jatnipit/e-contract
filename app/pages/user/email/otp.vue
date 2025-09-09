@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-const { $liff } = useNuxtApp();
+const { getEmail, error: liffError } = useLiff();
 
 const router = useRouter();
 const route = useRoute();
@@ -364,11 +364,11 @@ async function handleVerifyOtp() {
   }
 }
 
-async function getEmail() {
+async function initializeLiff() {
   try {
-    if ($liff.isLoggedIn()) {
-      const decodedIdToken = $liff.getDecodedIDToken();
-      console.log("Decoded ID Token:", decodedIdToken);
+    if (liff.isLoggedIn()) {
+      const email = await getEmail();
+      console.log("Email:", email);
     } else {
       state.error = "กรุณาเข้าสู่ระบบผ่าน LINE ก่อน";
     }
@@ -378,7 +378,8 @@ async function getEmail() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await initializeLiff();
   if (!state.email) {
     state.error = "ไม่พบอีเมล";
   }
