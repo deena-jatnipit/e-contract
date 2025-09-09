@@ -22,6 +22,7 @@ export const useLiff = () => {
 
     if (liff.isLoggedIn()) {
       const decodedIdToken = liff.getDecodedIDToken();
+      console.log("Decoded ID Token:", decodedIdToken);
       return decodedIdToken?.email;
     }
     return null;
