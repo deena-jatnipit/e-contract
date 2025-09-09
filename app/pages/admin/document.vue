@@ -174,6 +174,7 @@
 <script setup>
 const supabase = useSupabaseClient();
 const PROJECT_BASE_URL = useRuntimeConfig().public.projectBaseUrl;
+const LIFF_BASE_URL = useRuntimeConfig().public.liffBaseUrl;
 
 const selectedTemplateId = ref(null);
 const selectedUserId = ref("");
@@ -330,14 +331,14 @@ function resetForm() {
   selectedUserId.value = "";
 }
 
-async function sendSms(msisdn, documentId, token) {
+async function sendSms(identity, documentId, token) {
   try {
-    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms-otp?msisdn=${msisdn}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
-        msisdn,
+        msisdn: identity,
         message,
       },
     });
@@ -353,9 +354,9 @@ async function sendSms(msisdn, documentId, token) {
   }
 }
 
-async function sendLine(documentId, token) {
+async function sendLine(identity, documentId, token) {
   try {
-    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/email-otp?documentId=${documentId}&token=${token}`;
+    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",

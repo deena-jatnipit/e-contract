@@ -141,11 +141,13 @@
 </template>
 
 <script setup>
+const { $liff } = useNuxtApp();
+
 const router = useRouter();
 const route = useRoute();
 
 const state = reactive({
-  msisdn: route.query.msisdn || "",
+  userId: "",
   otpSent: false,
   resendCountdown: 0,
   error: "",
@@ -258,13 +260,13 @@ function startResendCountdown() {
 }
 
 async function sendOtpRequest() {
-  if (!state.msisdn) {
-    throw new Error("หมายเลขโทรศัพท์ไม่ถูกต้อง");
+  if (!state.email) {
+    throw new Error("อีเมลไม่ถูกต้อง");
   }
 
   const response = await $fetch("/api/sms/send-otp", {
     method: "POST",
-    body: { msisdn: state.msisdn },
+    body: { email: state.email },
   });
 
   if (response?.error) {
@@ -283,7 +285,7 @@ async function verifyOtpRequest(pin) {
     throw new Error("ข้อมูลไม่ครบถ้วน");
   }
 
-  const response = await $fetch("/api/otp/verify", {
+  const response = await $fetch("/api/sms/verify-otp", {
     method: "POST",
     body: {
       pin,
@@ -351,8 +353,8 @@ async function handleVerifyOtp() {
     console.log("OTP verified successfully:", response);
 
     await router.push({
-      path: "/customer/contract1",
-      query: { msisdn: state.msisdn },
+      path: "/user/email/contract1",
+      query: { email: state.email },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -362,9 +364,23 @@ async function handleVerifyOtp() {
   }
 }
 
+async function getEmail() {
+  try {
+    if ($liff.isLoggedIn()) {
+      const decodedIdToken = $liff.getDecodedIDToken();
+      console.log("Decoded ID Token:", decodedIdToken);
+    } else {
+      state.error = "กรุณาเข้าสู่ระบบผ่าน LINE ก่อน";
+    }
+  } catch (error) {
+    console.error("Error getting email:", error);
+    state.error = "ไม่สามารถดึงข้อมูลอีเมลได้";
+  }
+}
+
 onMounted(() => {
-  if (!state.msisdn) {
-    state.error = "ไม่พบหมายเลขโทรศัพท์";
+  if (!state.email) {
+    state.error = "ไม่พบอีเมล";
   }
 });
 

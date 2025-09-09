@@ -29,11 +29,6 @@
               </div>
 
               <div class="card-body p-4">
-                <!-- Description -->
-                <p class="text-muted text-center mb-4 lh-base">
-                  กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ของคุณ
-                </p>
-
                 <!-- Error Message -->
                 <div
                   v-if="state.error"
@@ -45,13 +40,19 @@
                 </div>
 
                 <!-- Send OTP Section -->
-                <div
-                  v-if="!state.otpSent"
-                  class="d-grid gap-2 align-items-center justify-content-center"
-                >
+                <div v-if="!state.otpSent" class="text-center">
+                  <div class="phone-display mb-4">
+                    <i class="fas fa-mobile-alt text-success me-2"></i>
+                    <span class="fw-semibold">{{
+                      formatPhoneNumber(state.msisdn)
+                    }}</span>
+                  </div>
+                  <p class="text-muted mb-4">
+                    กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ของคุณ
+                  </p>
                   <button
                     type="button"
-                    class="btn btn-success btn-lg d-flex align-items-center justify-content-center"
+                    class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
                     :disabled="state.loading"
                     @click="handleSendOtp"
                   >
@@ -67,6 +68,13 @@
 
                 <!-- OTP Input Section -->
                 <template v-else>
+                  <div class="text-center mb-4">
+                    <p class="text-muted mb-3">
+                      กรุณากรอกรหัส 6 หลักที่ส่งไปยัง<br />
+                      <strong>{{ formatPhoneNumber(state.msisdn) }}</strong>
+                    </p>
+                  </div>
+
                   <form @submit.prevent="handleVerifyOtp" class="mb-4">
                     <!-- OTP Input -->
                     <div class="d-flex justify-content-center gap-2 mb-4">
@@ -76,26 +84,21 @@
                         :ref="(el) => (otpInputs[index] = el)"
                         v-model="otpDigits[index]"
                         type="text"
-                        class="form-control form-control-lg text-center otp-input gap-1"
+                        class="form-control form-control-lg text-center otp-input"
                         maxlength="1"
+                        inputmode="numeric"
                         :disabled="state.loading"
                         @input="handleOtpInput(index, $event)"
                         @keydown="handleOtpKeydown(index, $event)"
                         @paste="handleOtpPaste"
-                        style="
-                          width: 50px;
-                          height: 50px;
-                          font-size: 1.5rem;
-                          font-weight: bold;
-                        "
                       />
                     </div>
 
                     <!-- Submit Button -->
-                    <div class="d-grid gap-2 mb-4">
+                    <div class="mb-4">
                       <button
                         type="submit"
-                        class="btn btn-success btn-lg d-flex align-items-center justify-content-center"
+                        class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
                         :disabled="!isOtpValid || state.loading"
                       >
                         <span
@@ -145,7 +148,7 @@ const router = useRouter();
 const route = useRoute();
 
 const state = reactive({
-  msisdn: route.query.msisdn || "",
+  msisdn: route.query.identity || "",
   otpSent: false,
   resendCountdown: 0,
   error: "",
@@ -162,6 +165,15 @@ let resendTimer = null;
 const isOtpValid = computed(() => {
   return otpDigits.every((digit) => digit !== "" && /^\d$/.test(digit));
 });
+
+function formatPhoneNumber(msisdn) {
+  if (!msisdn) return "";
+  const cleaned = msisdn.replace(/\D/g, "");
+  if (cleaned.length === 10) {
+    return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
+  }
+  return msisdn;
+}
 
 function getOtpValue() {
   return otpDigits.join("");
@@ -283,7 +295,7 @@ async function verifyOtpRequest(pin) {
     throw new Error("ข้อมูลไม่ครบถ้วน");
   }
 
-  const response = await $fetch("/api/otp/verify", {
+  const response = await $fetch("/api/sms/verify-otp", {
     method: "POST",
     body: {
       pin,
@@ -353,8 +365,8 @@ async function handleVerifyOtp() {
     console.log("OTP verified successfully:", response);
 
     await router.push({
-      path: "/customer/contract1",
-      query: { msisdn: state.msisdn },
+      path: "/user/sms/contract1",
+      query: { ...route.query },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -379,6 +391,35 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.phone-display {
+  padding: 0.75rem 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.otp-input {
+  width: 50px;
+  height: 50px;
+  font-size: 1.4rem;
+  font-weight: bold;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  transition: all 0.15s ease-in-out;
+}
+
+.otp-input:focus {
+  border-color: #198754;
+  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
+}
+
+.otp-input:disabled {
+  background-color: #f8f9fa;
+  opacity: 0.6;
+}
+
+/* Mobile optimizations - matching sign.vue */
 @media (max-width: 768px) {
   .container-fluid {
     padding: 0;
@@ -405,28 +446,13 @@ onBeforeUnmount(() => {
   }
 
   .otp-input {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 1.25rem !important;
+    width: 42px;
+    height: 42px;
+    font-size: 1.2rem;
   }
 }
 
-.otp-input {
-  border: 2px solid #dee2e6;
-  border-radius: 0.5rem;
-  transition: all 0.2s ease-in-out;
-}
-
-.otp-input:focus {
-  border-color: #198754;
-  box-shadow: 0 0 0 0.2rem rgba(25, 135, 84, 0.25);
-}
-
-.otp-input:disabled {
-  background-color: #f8f9fa;
-  opacity: 0.6;
-}
-
+/* Success theme colors - matching sign.vue */
 .bg-success {
   background-color: #198754 !important;
 }
