@@ -141,7 +141,7 @@
   </div>
 </template>
 <script setup>
-const { getEmail, error: liffError } = useLiff();
+const { getDecodedIDToken, error: liffError } = useLiff();
 
 const router = useRouter();
 const route = useRoute();
@@ -366,10 +366,11 @@ async function handleVerifyOtp() {
 
 async function initializeLiff() {
   try {
-    const email = await getEmail();
+    const decodedIdToken = await getDecodedIDToken();
+    console.log("Decoded ID Token:", decodedIdToken);
 
-    if (email) {
-      state.email = email;
+    if (decodedIdToken?.email) {
+      state.email = decodedIdToken.email;
     } else {
       state.error = "ไม่พบอีเมล";
     }

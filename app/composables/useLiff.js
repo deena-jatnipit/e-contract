@@ -15,22 +15,21 @@ export const useLiff = () => {
     }
   };
 
-  const getEmail = async () => {
+  const getDecodedIDToken = async () => {
     if (!initialized.value) {
       await init();
     }
 
     if (liff.isLoggedIn()) {
       const decodedIdToken = liff.getDecodedIDToken();
-      console.log("Decoded ID Token:", decodedIdToken);
-      return decodedIdToken?.email;
+      return decodedIdToken;
     }
     return null;
   };
 
   return {
     init,
-    getEmail,
+    getDecodedIDToken,
     error,
     initialized,
   };
