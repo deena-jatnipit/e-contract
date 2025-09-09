@@ -141,7 +141,7 @@
   </div>
 </template>
 <script setup>
-const { getDecodedIDToken, error: liffError } = useLiff();
+const { init, getDecodedIDToken, error: liffError } = useLiff();
 
 const router = useRouter();
 const route = useRoute();
@@ -366,6 +366,8 @@ async function handleVerifyOtp() {
 
 async function initializeLiff() {
   try {
+    await init();
+
     const decodedIdToken = await getDecodedIDToken();
     console.log("Decoded ID Token:", decodedIdToken);
 
