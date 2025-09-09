@@ -10,6 +10,9 @@ export const useLiff = () => {
       await liff.init({ liffId: config.public.liffId });
       initialized.value = true;
       console.log("LIFF initialized successfully");
+
+      liff.login();
+      console.log("LIFF login attempted");
     } catch (err) {
       error.value = err;
       console.error("LIFF initialization failed:", err);
