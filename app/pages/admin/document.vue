@@ -426,7 +426,11 @@ async function handleSubmit() {
         throw new Error("Failed to save document");
       }
 
-      const lineResult = await sendLine(documentResult.id, token);
+      const lineResult = await sendLine(
+        selectedUserId.value,
+        documentResult.id,
+        token
+      );
 
       if (lineResult?.error) {
         throw new Error(lineResult.error);

@@ -58,6 +58,8 @@ export default defineNuxtConfig({
         "/user/email/otp",
         "/user/email/contract1",
         "/user/email/contract2",
+        "/user",
+        "/user/*",
       ],
     },
   },

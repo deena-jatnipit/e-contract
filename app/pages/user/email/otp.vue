@@ -29,11 +29,6 @@
               </div>
 
               <div class="card-body p-4">
-                <!-- Description -->
-                <p class="text-muted text-center mb-4 lh-base">
-                  กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ของคุณ
-                </p>
-
                 <!-- Error Message -->
                 <div
                   v-if="state.error"
@@ -45,13 +40,17 @@
                 </div>
 
                 <!-- Send OTP Section -->
-                <div
-                  v-if="!state.otpSent"
-                  class="d-grid gap-2 align-items-center justify-content-center"
-                >
+                <div v-if="!state.otpSent" class="text-center">
+                  <div class="phone-display mb-4">
+                    <i class="fas fa-mobile-alt text-success me-2"></i>
+                    <span class="fw-semibold">{{ state.userId }}</span>
+                  </div>
+                  <p class="text-muted mb-4">
+                    กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ของคุณ
+                  </p>
                   <button
                     type="button"
-                    class="btn btn-success btn-lg d-flex align-items-center justify-content-center"
+                    class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
                     :disabled="state.loading"
                     @click="handleSendOtp"
                   >
@@ -67,6 +66,13 @@
 
                 <!-- OTP Input Section -->
                 <template v-else>
+                  <div class="text-center mb-4">
+                    <p class="text-muted mb-3">
+                      กรุณากรอกรหัส 6 หลักที่ส่งไปยัง<br />
+                      <strong>{{ state.userId }}</strong>
+                    </p>
+                  </div>
+
                   <form @submit.prevent="handleVerifyOtp" class="mb-4">
                     <!-- OTP Input -->
                     <div class="d-flex justify-content-center gap-2 mb-4">
@@ -76,26 +82,21 @@
                         :ref="(el) => (otpInputs[index] = el)"
                         v-model="otpDigits[index]"
                         type="text"
-                        class="form-control form-control-lg text-center otp-input gap-1"
+                        class="form-control form-control-lg text-center otp-input"
                         maxlength="1"
+                        inputmode="numeric"
                         :disabled="state.loading"
                         @input="handleOtpInput(index, $event)"
                         @keydown="handleOtpKeydown(index, $event)"
                         @paste="handleOtpPaste"
-                        style="
-                          width: 50px;
-                          height: 50px;
-                          font-size: 1.5rem;
-                          font-weight: bold;
-                        "
                       />
                     </div>
 
                     <!-- Submit Button -->
-                    <div class="d-grid gap-2 mb-4">
+                    <div class="mb-4">
                       <button
                         type="submit"
-                        class="btn btn-success btn-lg d-flex align-items-center justify-content-center"
+                        class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
                         :disabled="!isOtpValid || state.loading"
                       >
                         <span
@@ -139,7 +140,6 @@
     </div>
   </div>
 </template>
-
 <script setup>
 const { getEmail, error: liffError } = useLiff();
 
@@ -366,11 +366,12 @@ async function handleVerifyOtp() {
 
 async function initializeLiff() {
   try {
-    if (liff.isLoggedIn()) {
-      const email = await getEmail();
-      console.log("Email:", email);
+    const email = await getEmail();
+
+    if (email) {
+      state.email = email;
     } else {
-      state.error = "กรุณาเข้าสู่ระบบผ่าน LINE ก่อน";
+      state.error = "ไม่พบอีเมล";
     }
   } catch (error) {
     console.error("Error getting email:", error);

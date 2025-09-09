@@ -1,3 +1,5 @@
+import liff from "@line/liff";
+
 export const useLiff = () => {
   const initialized = ref(false);
   const error = ref(null);
