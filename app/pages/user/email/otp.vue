@@ -141,7 +141,7 @@
   </div>
 </template>
 <script setup>
-const { init, getDecodedIDToken, error: liffError } = useLiff();
+const { init, getDecodedIDToken, isLoggedIn, error: liffError } = useLiff();
 
 const router = useRouter();
 const route = useRoute();
