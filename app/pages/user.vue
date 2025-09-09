@@ -7,5 +7,3 @@ definePageMeta({
   layout: false,
 });
 </script>
-
-<style></style>

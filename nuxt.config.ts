@@ -42,4 +42,17 @@ export default defineNuxtConfig({
   },
 
   ssr: false,
+
+  supabase: {
+    redirectOptions: {
+      login: "/login",
+      callback: "/login",
+      exclude: [
+        "/user/sign",
+        "/user/sign-success",
+        "/user/sms-otp",
+        "/user/email-otp",
+      ],
+    },
+  },
 });
