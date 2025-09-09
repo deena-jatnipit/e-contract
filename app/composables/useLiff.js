@@ -10,9 +10,6 @@ export const useLiff = () => {
       await liff.init({ liffId: config.public.liffId });
       initialized.value = true;
       console.log("LIFF initialized successfully");
-
-      liff.login();
-      console.log("LIFF login attempted");
     } catch (err) {
       error.value = err;
       console.error("LIFF initialization failed:", err);
@@ -24,17 +21,26 @@ export const useLiff = () => {
       await init();
     }
 
-    if (liff.isLoggedIn()) {
-      const decodedIdToken = liff.getDecodedIDToken();
-      console.log("Decoded ID Token:", decodedIdToken);
-      return decodedIdToken;
+    // Check if user is logged in, if not, redirect to login
+    if (!liff.isLoggedIn()) {
+      console.log("User not logged in, redirecting to LINE login");
+      liff.login();
+      return null;
     }
-    return null;
+
+    const decodedIdToken = liff.getDecodedIDToken();
+    console.log("Decoded ID Token:", decodedIdToken);
+    return decodedIdToken;
+  };
+
+  const isLoggedIn = () => {
+    return initialized.value && liff.isLoggedIn();
   };
 
   return {
     init,
     getDecodedIDToken,
+    isLoggedIn,
     error,
     initialized,
   };

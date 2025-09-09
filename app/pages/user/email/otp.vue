@@ -366,18 +366,27 @@ async function handleVerifyOtp() {
 
 async function initializeLiff() {
   try {
+    // Initialize LIFF first
     await init();
 
-    const decodedIdToken = await getDecodedIDToken();
-    console.log("Decoded ID Token:", decodedIdToken);
+    // Check if user is already logged in
+    if (isLoggedIn()) {
+      const decodedIdToken = await getDecodedIDToken();
+      console.log("Decoded ID Token:", decodedIdToken);
 
-    if (decodedIdToken?.email) {
-      state.email = decodedIdToken.email;
+      if (decodedIdToken?.email) {
+        state.email = decodedIdToken.email;
+        state.userId = decodedIdToken.email; // Set userId for display
+      } else {
+        state.error = "ไม่พบอีเมล";
+      }
     } else {
-      state.error = "ไม่พบอีเมล";
+      // User not logged in, redirect to LINE login
+      console.log("User not logged in, redirecting to LINE login");
+      liff.login();
     }
   } catch (error) {
-    console.error("Error getting email:", error);
+    console.error("Error initializing LIFF:", error);
     state.error = "ไม่สามารถดึงข้อมูลอีเมลได้";
   }
 }
