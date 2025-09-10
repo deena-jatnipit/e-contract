@@ -16,6 +16,22 @@ export const useLiff = () => {
     }
   };
 
+  const getIdToken = async () => {
+    if (!initialized.value) {
+      await init();
+    }
+
+    if (!liff.isLoggedIn()) {
+      console.log("User not logged in, redirecting to LINE login");
+      liff.login();
+      return null;
+    }
+
+    const idToken = liff.getIDToken();
+    console.log("ID Token:", idToken);
+    return idToken;
+  };
+
   const getDecodedIDToken = async () => {
     if (!initialized.value) {
       await init();
@@ -39,6 +55,7 @@ export const useLiff = () => {
 
   return {
     init,
+    getIDToken,
     getDecodedIDToken,
     isLoggedIn,
     error,

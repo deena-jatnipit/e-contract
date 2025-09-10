@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-const { init, getIdToken, isLoggedIn, error: liffError } = useTestLiff();
+const { init, getIdToken, isLoggedIn, error: liffError } = useLiff();
 
 async function handleClick() {
   try {
