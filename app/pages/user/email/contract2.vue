@@ -123,24 +123,65 @@ async function confirmContract() {
   const message = "ยืนยันสัญญา 2";
 
   try {
-    const response = await $fetch("/api/sms/send-sms", {
-      method: "POST",
-      body: {
-        msisdn: route.query.msisdn,
-        message: message,
-      },
-    });
+    const lineResponse = await sendLine(message);
 
-    if (response && response.error) {
-      console.error("Error confirming contract:", response.error);
-      return;
+    if (lineResponse) {
+      const supabaseResponse = await updateDocumentStatus();
+
+      if (supabaseResponse && supabaseResponse.success) {
+        router.push({
+          path: "/user/sign",
+          query: { ...route.query },
+        });
+      }
     }
-
-    router.push({ path: "/user/sign", query: { ...route.query } });
   } catch (error) {
     console.error("Error confirming contract:", error);
   } finally {
     loading.value = false;
+  }
+}
+
+async function sendLine(message) {
+  try {
+    const response = await $fetch("/api/line/send-message", {
+      method: "POST",
+      body: {
+        userId: route.query.identity,
+        message: message,
+      },
+    });
+
+    if (response?.error) {
+      throw new Error(response.error);
+    }
+
+    console.log("Line message sent successfully:", response);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function updateDocumentStatus() {
+  try {
+    const response = await $fetch("/api/supabase/change-document-status", {
+      method: "POST",
+      body: {
+        status: "contract2 accepted",
+        documentId: route.query.documentId,
+        token: route.query.token,
+      },
+    });
+
+    if (response && response.error) {
+      console.error("Error updating document status:", response.error);
+      return;
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Error updating document status:", error);
   }
 }
 

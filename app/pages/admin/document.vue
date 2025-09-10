@@ -54,7 +54,7 @@
                   </button> -->
                   <button
                     class="btn btn-danger btn-sm ml-2"
-                    @click="deleteDocument(document.id)"
+                    @click="handleDeleteDocument(document.id)"
                   >
                     <i class="fas fa-trash"></i>
                   </button>
@@ -123,25 +123,17 @@
                 <option value="sms">SMS</option>
               </select>
             </div>
-            <div v-if="provider === 'sms'" class="form-group">
-              <label for="phoneNumber">Phone Number</label>
-              <input
-                type="tel"
-                class="form-control"
-                id="phoneNumber"
-                v-model="msisdn"
-                required
-              />
-            </div>
+
+            <!-- Customer selection for reference (optional) -->
             <div v-if="provider === 'line'" class="form-group">
-              <label for="selectCustomer">Select Customer</label>
+              <label for="selectCustomer"> Select Customer Line Name </label>
               <select
                 id="selectCustomer"
                 class="form-control"
                 v-model="selectedUserId"
-                required
+                @change="onCustomerSelect"
               >
-                <option :value="null" hidden>Select a user</option>
+                <option :value="null" hidden>Not selected</option>
                 <option
                   v-for="user in customers"
                   :key="user.id"
@@ -150,6 +142,28 @@
                   {{ user.display_name }}
                 </option>
               </select>
+            </div>
+
+            <div class="form-group">
+              <label for="phoneNumber">Phone Number</label>
+              <div class="input-group">
+                <input
+                  type="tel"
+                  class="form-control"
+                  id="phoneNumber"
+                  v-model="phoneNumber"
+                  placeholder="Enter phone number"
+                  maxlength="10"
+                  required
+                  @input="handlePhoneInput"
+                />
+              </div>
+              <div
+                v-if="!isPhoneValid && phoneNumber"
+                class="text-danger small mt-1"
+              >
+                Please enter a valid 10-digit phone number starting with 0
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -161,7 +175,11 @@
             >
               Close
             </button>
-            <button type="submit" class="btn btn-primary" :disabled="loading">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              :disabled="loading || !isPhoneValid"
+            >
               {{ loading ? "Sending..." : "Send Link" }}
             </button>
           </div>
@@ -177,13 +195,25 @@ const PROJECT_BASE_URL = useRuntimeConfig().public.projectBaseUrl;
 const LIFF_BASE_URL = useRuntimeConfig().public.liffBaseUrl;
 
 const selectedTemplateId = ref(null);
-const selectedUserId = ref("");
-const msisdn = ref("");
+const selectedUserId = ref(null);
+const phoneNumber = ref("");
 const templates = ref([]);
 const documents = ref([]);
 const customers = ref([]);
 const loading = ref(false);
 const provider = ref("line");
+
+// Computed property to validate phone number
+const isPhoneValid = computed(() => {
+  const cleaned = phoneNumber.value.replace(/\D/g, "");
+  return cleaned.length === 10 && cleaned.startsWith("0");
+});
+
+// Handle phone input to allow only digits
+function handlePhoneInput(event) {
+  const value = event.target.value.replace(/\D/g, "");
+  phoneNumber.value = value;
+}
 
 async function fetchTemplates() {
   try {
@@ -223,7 +253,7 @@ async function fetchCustomers() {
   try {
     const { data, error } = await supabase
       .from("customers")
-      .select("id, display_name");
+      .select("id, display_name, phone_number");
 
     if (error) {
       throw error;
@@ -235,14 +265,36 @@ async function fetchCustomers() {
   }
 }
 
-async function saveDocument(send_to, token) {
+async function savePhoneNumber(phoneNumber) {
+  try {
+    const { data, error } = await supabase
+      .from("customers")
+      .update({
+        phone_number: phoneNumber,
+      })
+      .eq("id", selectedUserId.value)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    } else {
+      return data;
+    }
+  } catch (error) {
+    console.error("Error saving document:", error);
+    return null;
+  }
+}
+
+async function saveDocument(sendTo, token) {
   try {
     const { data, error } = await supabase
       .from("documents")
       .insert([
         {
           template_id: selectedTemplateId.value,
-          send_to: send_to,
+          send_to: sendTo,
           provider: provider.value,
           status: "sent",
           token: token,
@@ -327,13 +379,13 @@ function generateSecureToken(length = 32) {
 
 function resetForm() {
   selectedTemplateId.value = null;
-  msisdn.value = "";
-  selectedUserId.value = "";
+  phoneNumber.value = "";
+  selectedUserId.value = null;
 }
 
 async function sendSms(identity, documentId, token) {
   try {
-    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
@@ -356,7 +408,8 @@ async function sendSms(identity, documentId, token) {
 
 async function sendLine(identity, documentId, token) {
   try {
-    const message = `กรุณากดลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    // const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
@@ -389,30 +442,30 @@ async function handleSubmit() {
     return;
   }
 
-  if (provider.value === "sms" && !msisdn.value) {
-    alert("Please enter a phone number.");
-    return;
-  }
-
-  if (provider.value === "line" && !selectedUserId.value) {
-    alert("Please select a user.");
+  if (!phoneNumber.value || !isPhoneValid.value) {
+    alert("Please enter a valid 10-digit phone number starting with 0.");
     return;
   }
 
   let documentResult = null;
+  const cleanedPhoneNumber = phoneNumber.value.replace(/\D/g, "");
 
   try {
     loading.value = true;
     const token = generateSecureToken();
 
     if (provider.value === "sms") {
-      documentResult = await saveDocument(msisdn.value, token);
+      documentResult = await saveDocument(cleanedPhoneNumber, token);
 
       if (!documentResult) {
         throw new Error("Failed to save document");
       }
 
-      const smsResult = await sendSms(msisdn.value, documentResult.id, token);
+      const smsResult = await sendSms(
+        cleanedPhoneNumber,
+        documentResult.id,
+        token
+      );
 
       if (smsResult?.error) {
         throw new Error(smsResult.error);
@@ -420,14 +473,22 @@ async function handleSubmit() {
     }
 
     if (provider.value === "line") {
+      // Save document with phone number as send_to
       documentResult = await saveDocument(selectedUserId.value, token);
 
       if (!documentResult) {
         throw new Error("Failed to save document");
       }
 
+      const customerResult = await savePhoneNumber(cleanedPhoneNumber);
+
+      if (!customerResult) {
+        throw new Error("Failed to save phone number");
+      }
+
+      // Send Line message using phone number as identity
       const lineResult = await sendLine(
-        selectedUserId.value,
+        cleanedPhoneNumber,
         documentResult.id,
         token
       );
@@ -458,9 +519,35 @@ async function handleSubmit() {
   }
 }
 
+async function handleDeleteDocument(documentId) {
+  if (!window.confirm("Are you sure you want to delete this document?")) {
+    return;
+  }
+
+  await deleteDocument(documentId);
+}
+
 function getCustomerDisplayName(userId) {
+  if (/^\d+$/.test(userId)) {
+    return userId;
+  }
+
   const customer = customers.value.find((customer) => customer.id === userId);
   return customer ? customer.display_name : userId;
+}
+
+function onCustomerSelect() {
+  if (selectedUserId.value && provider.value === "line") {
+    const selectedCustomer = customers.value.find(
+      (customer) => customer.id === selectedUserId.value
+    );
+
+    if (selectedCustomer && selectedCustomer.phone_number) {
+      phoneNumber.value = selectedCustomer.phone_number;
+    } else {
+      phoneNumber.value = "";
+    }
+  }
 }
 
 onMounted(async () => {

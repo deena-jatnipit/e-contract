@@ -96,6 +96,7 @@
 <script setup>
 const router = useRouter();
 const route = useRoute();
+
 const isChecked = ref(false);
 const hasScrolledToBottom = ref(false);
 const contractBox = ref(null);
@@ -123,10 +124,17 @@ async function confirmContract() {
   const message = "ยืนยันสัญญา 1";
 
   try {
-    const response = await sendSms(message);
+    const lineResponse = await sendLine(message);
 
-    if (response) {
-      router.push({ path: "/user/email/contract2", query: { ...route.query } });
+    if (lineResponse) {
+      const supabaseResponse = await updateDocumentStatus();
+
+      if (supabaseResponse && supabaseResponse.success) {
+        router.push({
+          path: "/user/email/contract2",
+          query: { ...route.query },
+        });
+      }
     }
   } catch (error) {
     console.error("Error confirming contract:", error);
@@ -135,24 +143,46 @@ async function confirmContract() {
   }
 }
 
-async function sendSms(message) {
+async function sendLine(message) {
   try {
-    const response = await $fetch("/api/sms/send-sms", {
+    const response = await $fetch("/api/line/send-message", {
       method: "POST",
       body: {
-        msisdn: route.query.msisdn,
+        userId: route.query.identity,
         message: message,
       },
     });
 
+    if (response?.error) {
+      throw new Error(response.error);
+    }
+
+    console.log("Line message sent successfully:", response);
+    return response;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function updateDocumentStatus() {
+  try {
+    const response = await $fetch("/api/supabase/change-document-status", {
+      method: "POST",
+      body: {
+        status: "contract1 accepted",
+        documentId: route.query.documentId,
+        token: route.query.token,
+      },
+    });
+
     if (response && response.error) {
-      console.error("Error confirming contract:", response.error);
+      console.error("Error updating document status:", response.error);
       return;
     }
 
     return response;
   } catch (error) {
-    console.error("Error confirming contract:", error);
+    console.error("Error updating document status:", error);
   }
 }
 

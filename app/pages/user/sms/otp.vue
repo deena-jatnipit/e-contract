@@ -39,8 +39,56 @@
                   <div>{{ state.error }}</div>
                 </div>
 
-                <!-- Send OTP Section -->
-                <div v-if="!state.otpSent" class="text-center">
+                <!-- Phone Input Section (when no identity provided) -->
+                <div
+                  v-if="!hasIdentityFromQuery && !state.otpSent"
+                  class="mb-4"
+                >
+                  <form @submit.prevent="handleSendOtp">
+                    <div class="mb-3 text-center">
+                      <label for="phoneInput" class="form-label">
+                        หมายเลขโทรศัพท์มือถือ
+                      </label>
+                      <div class="input-group">
+                        <span class="input-group-text">
+                          <i class="fas fa-mobile-alt"></i>
+                        </span>
+                        <input
+                          id="phoneInput"
+                          v-model="state.msisdn"
+                          type="tel"
+                          class="form-control form-control-lg"
+                          placeholder="เช่น 0812345678"
+                          maxlength="10"
+                          :disabled="state.loading"
+                          @input="handlePhoneInput"
+                        />
+                      </div>
+                      <div class="form-text">
+                        กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก (ขึ้นต้นด้วย 0)
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
+                      :disabled="!isPhoneValid || state.loading"
+                    >
+                      <span
+                        v-if="state.loading"
+                        class="spinner-border spinner-border-sm me-2"
+                        role="status"
+                      ></span>
+                      <i v-else class="fas fa-paper-plane me-2"></i>
+                      {{ state.loading ? "กำลังส่ง..." : "ส่งรหัส OTP" }}
+                    </button>
+                  </form>
+                </div>
+
+                <!-- Send OTP Section (when identity is provided) -->
+                <div
+                  v-else-if="hasIdentityFromQuery && !state.otpSent"
+                  class="text-center"
+                >
                   <div class="phone-display mb-4">
                     <i class="fas fa-mobile-alt text-success me-2"></i>
                     <span class="fw-semibold">{{
@@ -67,12 +115,29 @@
                 </div>
 
                 <!-- OTP Input Section -->
-                <template v-else>
+                <template v-else-if="state.otpSent">
                   <div class="text-center mb-4">
+                    <div class="phone-display mb-3">
+                      <i class="fas fa-mobile-alt text-success me-2"></i>
+                      <span class="fw-semibold">{{
+                        formatPhoneNumber(state.msisdn)
+                      }}</span>
+                    </div>
                     <p class="text-muted mb-3">
-                      กรุณากรอกรหัส 6 หลักที่ส่งไปยัง<br />
-                      <strong>{{ formatPhoneNumber(state.msisdn) }}</strong>
+                      กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ข้างต้น
                     </p>
+                    <!-- Back to phone input button (only if identity wasn't provided) -->
+                    <div v-if="!hasIdentityFromQuery" class="mb-3">
+                      <button
+                        type="button"
+                        class="btn btn-link btn-sm text-muted"
+                        @click="handleBackToPhoneInput"
+                        :disabled="state.loading"
+                      >
+                        <i class="fas fa-arrow-left me-1"></i>
+                        เปลี่ยนหมายเลขโทรศัพท์
+                      </button>
+                    </div>
                   </div>
 
                   <form @submit.prevent="handleVerifyOtp" class="mb-4">
@@ -147,6 +212,10 @@
 const router = useRouter();
 const route = useRoute();
 
+const hasIdentityFromQuery = computed(() => {
+  return !!(route.query.identity && route.query.identity.trim());
+});
+
 const state = reactive({
   msisdn: route.query.identity || "",
   otpSent: false,
@@ -166,6 +235,11 @@ const isOtpValid = computed(() => {
   return otpDigits.every((digit) => digit !== "" && /^\d$/.test(digit));
 });
 
+const isPhoneValid = computed(() => {
+  const cleaned = state.msisdn.replace(/\D/g, "");
+  return cleaned.length === 10 && cleaned.startsWith("0");
+});
+
 function formatPhoneNumber(msisdn) {
   if (!msisdn) return "";
   const cleaned = msisdn.replace(/\D/g, "");
@@ -173,6 +247,13 @@ function formatPhoneNumber(msisdn) {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
   return msisdn;
+}
+
+function handlePhoneInput(event) {
+  // Only allow digits
+  const value = event.target.value.replace(/\D/g, "");
+  state.msisdn = value;
+  clearError();
 }
 
 function getOtpValue() {
@@ -193,6 +274,18 @@ function resetOtpInput() {
       otpInputs.value[0].focus();
     }
   });
+}
+
+function handleBackToPhoneInput() {
+  state.otpSent = false;
+  state.token = "";
+  clearError();
+  if (resendTimer) {
+    clearInterval(resendTimer);
+    resendTimer = null;
+    state.resendCountdown = 0;
+  }
+  resetOtpInput();
 }
 
 function handleOtpInput(index, event) {
@@ -274,9 +367,14 @@ async function sendOtpRequest() {
     throw new Error("หมายเลขโทรศัพท์ไม่ถูกต้อง");
   }
 
+  const cleanedMsisdn = state.msisdn.replace(/\D/g, "");
+  if (cleanedMsisdn.length !== 10 || !cleanedMsisdn.startsWith("0")) {
+    throw new Error("กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก ขึ้นต้นด้วย 0");
+  }
+
   const response = await $fetch("/api/sms/send-otp", {
     method: "POST",
-    body: { msisdn: state.msisdn },
+    body: { msisdn: cleanedMsisdn },
   });
 
   if (response?.error) {
@@ -366,7 +464,7 @@ async function handleVerifyOtp() {
 
     await router.push({
       path: "/user/sms/contract1",
-      query: { ...route.query },
+      query: { ...route.query, identity: state.msisdn },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -377,8 +475,8 @@ async function handleVerifyOtp() {
 }
 
 onMounted(() => {
-  if (!state.msisdn) {
-    state.error = "ไม่พบหมายเลขโทรศัพท์";
+  if (!hasIdentityFromQuery.value) {
+    clearError();
   }
 });
 
@@ -473,5 +571,13 @@ onBeforeUnmount(() => {
 
 .border-success {
   border-color: #198754 !important;
+}
+
+.btn-link {
+  text-decoration: none;
+}
+
+.btn-link:hover {
+  text-decoration: underline;
 }
 </style>

@@ -120,31 +120,36 @@ function rejectContract() {
   router.back();
 }
 
-async function chageDocumentStatus(status) {
-  const { data, error } = await supabase
-    .from("documents")
-    .update({ status: status })
-    .eq("msisdn", route.query.documentId)
-    .select()
-    .single();
-
-  if (error) {
-    console.error("Error updating document status:", error);
-    throw error;
-  }
-
-  return data;
-}
-
 async function confirmContract() {
   loading.value = true;
   const message = "ยืนยันสัญญา 2";
 
   try {
+    const smsResponse = await sendSms(message);
+
+    if (smsResponse) {
+      const supabaseResponse = await updateDocumentStatus();
+
+      if (supabaseResponse && supabaseResponse.success) {
+        router.push({
+          path: "/user/sign",
+          query: { ...route.query },
+        });
+      }
+    }
+  } catch (error) {
+    console.error("Error confirming contract:", error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function sendSms(message) {
+  try {
     const response = await $fetch("/api/sms/send-sms", {
       method: "POST",
       body: {
-        msisdn: route.query.msisdn,
+        msisdn: route.query.identity,
         message: message,
       },
     });
@@ -154,11 +159,31 @@ async function confirmContract() {
       return;
     }
 
-    router.push({ path: "/user/sign", query: { ...route.query } });
+    return response;
   } catch (error) {
     console.error("Error confirming contract:", error);
-  } finally {
-    loading.value = false;
+  }
+}
+
+async function updateDocumentStatus() {
+  try {
+    const response = await $fetch("/api/supabase/change-document-status", {
+      method: "POST",
+      body: {
+        status: "contract2 accepted",
+        documentId: route.query.documentId,
+        token: route.query.token,
+      },
+    });
+
+    if (response && response.error) {
+      console.error("Error updating document status:", response.error);
+      return;
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Error updating document status:", error);
   }
 }
 

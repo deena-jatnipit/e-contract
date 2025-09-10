@@ -123,10 +123,17 @@ async function confirmContract() {
   const message = "ยืนยันสัญญา 1";
 
   try {
-    const response = await sendSms(message);
+    const smsResponse = await sendSms(message);
 
-    if (response) {
-      router.push({ path: "/user/sms/contract2", query: { ...route.query } });
+    if (smsResponse) {
+      const supabaseResponse = await updateDocumentStatus();
+
+      if (supabaseResponse && supabaseResponse.success) {
+        router.push({
+          path: "/user/sms/contract2",
+          query: { ...route.query },
+        });
+      }
     }
   } catch (error) {
     console.error("Error confirming contract:", error);
@@ -140,7 +147,7 @@ async function sendSms(message) {
     const response = await $fetch("/api/sms/send-sms", {
       method: "POST",
       body: {
-        msisdn: route.query.msisdn,
+        msisdn: route.query.identity,
         message: message,
       },
     });
@@ -153,6 +160,28 @@ async function sendSms(message) {
     return response;
   } catch (error) {
     console.error("Error confirming contract:", error);
+  }
+}
+
+async function updateDocumentStatus() {
+  try {
+    const response = await $fetch("/api/supabase/change-document-status", {
+      method: "POST",
+      body: {
+        status: "contract1 accepted",
+        documentId: route.query.documentId,
+        token: route.query.token,
+      },
+    });
+
+    if (response && response.error) {
+      console.error("Error updating document status:", response.error);
+      return;
+    }
+
+    return response;
+  } catch (error) {
+    console.error("Error updating document status:", error);
   }
 }
 

@@ -354,7 +354,7 @@ async function handleVerifyOtp() {
 
     await router.push({
       path: "/user/email/contract1",
-      query: { email: state.email },
+      query: { ...route.query },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
