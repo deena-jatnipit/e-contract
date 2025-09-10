@@ -36,6 +36,7 @@ export default defineNuxtConfig({
       otpKey: process.env.TBS_OTP_KEY,
       lineAccessToken: process.env.LINE_ACCESS_TOKEN,
       liffId: process.env.LIFF_ID,
+      liffTestId: process.env.LIFF_TEST_ID,
       liffBaseUrl: `https://liff.line.me/${process.env.LIFF_ID}`,
       telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
       telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID,
