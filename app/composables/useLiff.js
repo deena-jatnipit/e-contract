@@ -62,7 +62,7 @@ export const useLiff = () => {
   };
 
   const requestPermission = () => {
-    liff.permission.query("profile").then((permissionStatus) => {
+    liff.permission.query("email").then((permissionStatus) => {
       permissionStatus = { state: "granted" };
     });
   };
