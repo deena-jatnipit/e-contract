@@ -127,11 +127,11 @@ async function confirmContract() {
     const smsResponse = await sendSms(message);
 
     if (smsResponse) {
-      console.log("sms sent")
+      console.log("sms sent:", smsResponse);
       const supabaseResponse = await updateDocumentStatus();
 
       if (supabaseResponse && supabaseResponse.success) {
-        console.log("status updated")
+        console.log("status updated:", supabaseResponse);
         router.push({
           path: "/user/sms/contract2",
           query: { ...route.query },
@@ -147,7 +147,7 @@ async function confirmContract() {
 
 async function sendSms(message) {
   try {
-    const response = await $fetch("/api/sms/send-sms", {
+    const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
         msisdn: route.query.identity,
