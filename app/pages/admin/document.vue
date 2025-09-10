@@ -409,7 +409,7 @@ async function sendSms(identity, documentId, token) {
 async function sendLine(identity, documentId, token) {
   try {
     // const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",

@@ -1,5 +1,8 @@
 export default defineEventHandler(async (event) => {
+  const supabase = useSupabaseClient();
+
   const body = await readBody(event);
+
   const { status, documentId, token } = body;
 
   const { error } = await supabase
