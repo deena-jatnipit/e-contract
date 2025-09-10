@@ -130,7 +130,7 @@ async function confirmContract() {
     if (smsResponse) {
       const supabaseResponse = await updateDocumentStatus();
 
-      if (supabaseResponse && supabaseResponse.success) {
+      if (supabaseResponse) {
         router.push({
           path: "/user/sign",
           query: { ...route.query },
@@ -146,7 +146,7 @@ async function confirmContract() {
 
 async function sendSms(message) {
   try {
-    const response = await $fetch("/api/sms/send-sms", {
+    const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
         msisdn: route.query.identity,
@@ -167,23 +167,25 @@ async function sendSms(message) {
 
 async function updateDocumentStatus() {
   try {
-    const response = await $fetch("/api/supabase/change-document-status", {
-      method: "POST",
-      body: {
+    const { data, error } = await supabase
+      .from("documents")
+      .update({
         status: "contract2 accepted",
-        documentId: route.query.documentId,
-        token: route.query.token,
-      },
-    });
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", route.query.documentId)
+      .eq("token", route.query.token)
+      .select()
+      .single();
 
-    if (response && response.error) {
-      console.error("Error updating document status:", response.error);
-      return;
+    if (error) {
+      throw error;
+    } else {
+      return data;
     }
-
-    return response;
   } catch (error) {
-    console.error("Error updating document status:", error);
+    console.error("Error saving document:", error);
+    return null;
   }
 }
 

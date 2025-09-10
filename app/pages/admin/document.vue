@@ -41,19 +41,22 @@
                 <td>{{ document.status }}</td>
                 <td class="text-center">
                   <button
-                    class="btn btn-primary btn-sm"
+                    class="btn btn-info btn-sm"
+                    @click="previewDocument(document.document_url)"
+                    data-toggle="modal"
+                    data-target="#previewModal"
+                    :disabled="!document.document_url"
+                  >
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <button
+                    class="btn btn-primary btn-sm ml-1"
                     @click="downloadDocument(document.document_url)"
                   >
                     <i class="fas fa-download"></i>
                   </button>
-                  <!-- <button
-                    class="btn btn-warning btn-sm ml-2"
-                    @click="changeStatus(document.id)"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button> -->
                   <button
-                    class="btn btn-danger btn-sm ml-2"
+                    class="btn btn-danger btn-sm ml-1"
                     @click="handleDeleteDocument(document.id)"
                   >
                     <i class="fas fa-trash"></i>
@@ -70,6 +73,51 @@
     </div>
   </div>
 
+  <!-- Document Preview Modal -->
+  <div
+    class="modal fade"
+    id="previewModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="previewModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="previewModalLabel">Document Preview</h4>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="document-preview-container">
+            <img
+              v-if="previewImageUrl"
+              :src="previewImageUrl"
+              alt="Document Preview"
+            />
+            <div v-else class="text-center p-4">
+              <i class="fas fa-spinner fa-spin fa-2x"></i>
+              <p class="mt-2">Loading preview...</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Send Link Modal (existing) -->
   <div
     class="modal fade"
     id="sendLinkModal"
@@ -202,12 +250,18 @@ const documents = ref([]);
 const customers = ref([]);
 const loading = ref(false);
 const provider = ref("line");
+const previewImageUrl = ref(null); // New reactive variable for preview
 
 // Computed property to validate phone number
 const isPhoneValid = computed(() => {
   const cleaned = phoneNumber.value.replace(/\D/g, "");
   return cleaned.length === 10 && cleaned.startsWith("0");
 });
+
+// New function to handle document preview
+function previewDocument(documentUrl) {
+  previewImageUrl.value = documentUrl;
+}
 
 // Handle phone input to allow only digits
 function handlePhoneInput(event) {
@@ -385,7 +439,7 @@ function resetForm() {
 
 async function sendSms(identity, documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
@@ -408,8 +462,8 @@ async function sendSms(identity, documentId, token) {
 
 async function sendLine(identity, documentId, token) {
   try {
-    // const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    // const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
@@ -557,4 +611,38 @@ onMounted(async () => {
 });
 </script>
 
-<style></style>
+<style scoped>
+.document-preview-container {
+  position: relative;
+  border: 1px dashed #6c757d;
+  background-color: #f8f9fa;
+  background-image:
+    linear-gradient(45deg, #eee 25%, transparent 25%),
+    linear-gradient(-45deg, #eee 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #eee 75%),
+    linear-gradient(-45deg, transparent 75%, #eee 75%);
+  background-size: 20px 20px;
+  min-height: 400px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.document-preview-container img {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+@media (max-width: 820px) {
+  .document-preview-container {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .document-preview-container img {
+    width: 100% !important;
+  }
+}
+</style>

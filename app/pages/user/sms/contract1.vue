@@ -96,6 +96,7 @@
 <script setup>
 const router = useRouter();
 const route = useRoute();
+const supabase = useSupabaseClient();
 
 const isChecked = ref(false);
 const hasScrolledToBottom = ref(false);
@@ -127,11 +128,9 @@ async function confirmContract() {
     const smsResponse = await sendSms(message);
 
     if (smsResponse) {
-      console.log("sms sent:", smsResponse);
       const supabaseResponse = await updateDocumentStatus();
 
-      if (supabaseResponse && supabaseResponse.success) {
-        console.log("status updated:", supabaseResponse);
+      if (supabaseResponse) {
         router.push({
           path: "/user/sms/contract2",
           query: { ...route.query },
@@ -168,23 +167,25 @@ async function sendSms(message) {
 
 async function updateDocumentStatus() {
   try {
-    const response = await $fetch("/api/supabase/change-document-status", {
-      method: "POST",
-      body: {
+    const { data, error } = await supabase
+      .from("documents")
+      .update({
         status: "contract1 accepted",
-        documentId: route.query.documentId,
-        token: route.query.token,
-      },
-    });
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", route.query.documentId)
+      .eq("token", route.query.token)
+      .select()
+      .single();
 
-    if (response && response.error) {
-      console.error("Error updating document status:", response.error);
-      return;
+    if (error) {
+      throw error;
+    } else {
+      return data;
     }
-
-    return response;
   } catch (error) {
-    console.error("Error updating document status:", error);
+    console.error("Error saving document:", error);
+    return null;
   }
 }
 
