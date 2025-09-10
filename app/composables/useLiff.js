@@ -16,7 +16,7 @@ export const useLiff = () => {
     }
   };
 
-  const getIdToken = async () => {
+  const getIDToken = async () => {
     if (!initialized.value) {
       await init();
     }
