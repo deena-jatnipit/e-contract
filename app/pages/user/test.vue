@@ -5,14 +5,14 @@
 </template>
 
 <script setup>
-const { init, getIdToken, isLoggedIn, error: liffError } = useLiff();
+const { init, getIDToken, isLoggedIn, error: liffError } = useLiff();
 
 async function handleClick() {
   try {
     await init();
 
     if (isLoggedIn()) {
-      const idToken = await getIdToken();
+      const idToken = await getIDToken();
       console.log("ID Token:", idToken);
     } else {
       console.log("User is not logged in.");
