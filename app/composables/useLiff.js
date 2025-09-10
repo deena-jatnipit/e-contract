@@ -2,7 +2,7 @@ import liff from "@line/liff";
 
 export const useLiff = () => {
   const initialized = ref(false);
-  const permissionStatus = ref(null);
+  const status = ref(null);
   const error = ref(null);
 
   const init = async () => {
@@ -63,7 +63,7 @@ export const useLiff = () => {
 
   const requestPermission = () => {
     liff.permission.query("email").then((permissionStatus) => {
-      permissionStatus = { state: "granted" };
+      console.log("Permission status: ", permissionStatus);
     });
   };
 
