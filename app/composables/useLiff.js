@@ -2,6 +2,7 @@ import liff from "@line/liff";
 
 export const useLiff = () => {
   const initialized = ref(false);
+  const permissionStatus = ref(null);
   const error = ref(null);
 
   const init = async () => {
@@ -53,11 +54,26 @@ export const useLiff = () => {
     return initialized.value && liff.isLoggedIn();
   };
 
+  const getPermissionList = () => {
+    liff.permission.getGrantedAll().then((scopes) => {
+      // ["profile", "chat_message.write", "openid", "email"]
+      console.log(scopes);
+    });
+  };
+
+  const requestPermission = () => {
+    liff.permission.query("profile").then((permissionStatus) => {
+      permissionStatus = { state: "granted" };
+    });
+  };
+
   return {
     init,
     getIDToken,
     getDecodedIDToken,
     isLoggedIn,
+    getPermissionList,
+    requestPermission,
     error,
     initialized,
   };
