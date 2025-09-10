@@ -96,6 +96,7 @@
 <script setup>
 const router = useRouter();
 const route = useRoute();
+
 const isChecked = ref(false);
 const hasScrolledToBottom = ref(false);
 const contractBox = ref(null);
@@ -126,9 +127,11 @@ async function confirmContract() {
     const smsResponse = await sendSms(message);
 
     if (smsResponse) {
+      console.log("sms sent")
       const supabaseResponse = await updateDocumentStatus();
 
       if (supabaseResponse && supabaseResponse.success) {
+        console.log("status updated")
         router.push({
           path: "/user/sms/contract2",
           query: { ...route.query },
