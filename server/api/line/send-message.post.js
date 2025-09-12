@@ -2,10 +2,23 @@ export default defineEventHandler(async (event) => {
   try {
     const body = await readBody(event);
 
-    if (!body.userId || !body.message) {
+    if (!body.userId) {
       throw createError({
         statusCode: 400,
-        statusMessage: "Missing required fields",
+        statusMessage: "Missing required userId field",
+      });
+    }
+
+    let messages;
+
+    if (body.messages && Array.isArray(body.messages)) {
+      messages = body.messages;
+    } else if (body.message) {
+      messages = [{ type: "text", text: body.message }];
+    } else {
+      throw createError({
+        statusCode: 400,
+        statusMessage: "Missing required message or messages field",
       });
     }
 
@@ -14,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
     const payload = {
       to: body.userId,
-      messages: [{ type: "text", text: body.message }],
+      messages: messages,
     };
 
     const response = await $fetch(LINE_API_URL, {

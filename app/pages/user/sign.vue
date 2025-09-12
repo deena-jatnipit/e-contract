@@ -605,7 +605,7 @@ async function handleSubmit() {
       .from("template-images")
       .getPublicUrl(filePath);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("documents")
       .update({
         status: "signed",
@@ -619,7 +619,7 @@ async function handleSubmit() {
 
     if (error) throw new Error("Database error: " + error.message);
 
-    await sendNotification();
+    await sendNotification(data.document_url);
 
     router.push("/user/sign-success");
   } catch (error) {
@@ -710,15 +710,30 @@ async function sendSms(msisdn) {
   }
 }
 
-async function sendLine(userId) {
+async function sendLine(userId, documentUrl = null) {
   try {
-    const message = `เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว`;
+    const textMessage = `เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว`;
+
+    const messages = [
+      {
+        type: "text",
+        text: textMessage,
+      },
+    ];
+
+    if (documentUrl) {
+      messages.push({
+        type: "image",
+        originalContentUrl: documentUrl,
+        previewImageUrl: documentUrl,
+      });
+    }
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
       body: {
         userId: userId,
-        message: message,
+        messages: messages,
       },
     });
 
@@ -755,10 +770,10 @@ async function sendTelegram() {
   }
 }
 
-async function sendNotification() {
+async function sendNotification(documentUrl) {
   try {
     if (documentData.value.provider === "line") {
-      await sendLine(documentData.value.send_to);
+      await sendLine(documentData.value.send_to, documentUrl);
     }
 
     if (documentData.value.provider === "sms") {

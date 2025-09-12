@@ -359,9 +359,16 @@ async function saveField() {
 
     if (error) throw error;
 
+    const modalElement = $("#addFieldModal");
+    modalElement.modal("hide");
+
+    modalElement.one("hidden.bs.modal", function () {
+      $(".modal-backdrop").remove();
+      $("body").removeClass("modal-open").css("padding-right", "");
+      resetForm();
+    });
+
     await getFields();
-    $("#addFieldModal").modal("hide");
-    resetForm();
   } catch (err) {
     console.error("Error saving field:", err);
     errorMessage.value = err.message;

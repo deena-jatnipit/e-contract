@@ -64,7 +64,7 @@
                 </td>
               </tr>
               <tr v-if="!documents || documents.length === 0">
-                <td colspan="8" class="text-center">No documents found.</td>
+                <td colspan="6" class="text-center">No documents found.</td>
               </tr>
             </tbody>
           </table>
@@ -117,7 +117,7 @@
     </div>
   </div>
 
-  <!-- Send Link Modal (existing) -->
+  <!-- Send Link Modal -->
   <div
     class="modal fade"
     id="sendLinkModal"
@@ -159,6 +159,42 @@
                 </option>
               </select>
             </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="fullName">Full name</label>
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="fullName"
+                      v-model="fullName"
+                      placeholder="Enter full name"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="carRegistrationNumber"
+                    >Car Registration Number</label
+                  >
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="carRegistrationNumber"
+                      v-model="carRegistrationNumber"
+                      placeholder="Enter car registration number"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="form-group">
               <label for="providerSelect">Select Provider</label>
               <select
@@ -172,45 +208,59 @@
               </select>
             </div>
 
-            <!-- Customer selection for reference (optional) -->
-            <div v-if="provider === 'line'" class="form-group">
-              <label for="selectCustomer"> Select Customer Line Name </label>
-              <select
-                id="selectCustomer"
-                class="form-control"
-                v-model="selectedUserId"
-                @change="onCustomerSelect"
-              >
-                <option :value="null" hidden>Not selected</option>
-                <option
-                  v-for="user in customers"
-                  :key="user.id"
-                  :value="user.id"
-                >
-                  {{ user.display_name }}
-                </option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="phoneNumber">Phone Number</label>
-              <div class="input-group">
-                <input
-                  type="tel"
-                  class="form-control"
-                  id="phoneNumber"
-                  v-model="phoneNumber"
-                  placeholder="Enter phone number"
-                  maxlength="10"
-                  required
-                  @input="handlePhoneInput"
-                />
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="customerLine">Select Customer Line</label>
+                  <select
+                    id="customerLine"
+                    class="form-control"
+                    v-model="selectedCustomerProfile"
+                    required
+                  >
+                    <option :value="null" hidden>Select a customer</option>
+                    <option
+                      v-for="profile in filteredCustomerProfiles"
+                      :key="profile.id"
+                      :value="profile"
+                    >
+                      {{ getCustomerDisplayNameFromProfile(profile) }}
+                    </option>
+                    <option
+                      v-if="
+                        filteredCustomerProfiles.length === 0 &&
+                        (fullName || carRegistrationNumber)
+                      "
+                      :value="null"
+                      disabled
+                    >
+                      No customers found matching the criteria
+                    </option>
+                  </select>
+                </div>
               </div>
-              <div
-                v-if="!isPhoneValid && phoneNumber"
-                class="text-danger small mt-1"
-              >
-                Please enter a valid 10-digit phone number starting with 0
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="phoneNumber">Phone Number</label>
+                  <div class="input-group">
+                    <input
+                      type="tel"
+                      class="form-control"
+                      id="phoneNumber"
+                      v-model="phoneNumber"
+                      placeholder="Enter phone number"
+                      maxlength="10"
+                      required
+                      @input="handlePhoneInput"
+                    />
+                  </div>
+                  <div
+                    v-if="!isPhoneValid && phoneNumber"
+                    class="text-danger small mt-1"
+                  >
+                    Please enter a valid 10-digit phone number starting with 0
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -245,12 +295,16 @@ const LIFF_BASE_URL = useRuntimeConfig().public.liffBaseUrl;
 const selectedTemplateId = ref(null);
 const selectedUserId = ref(null);
 const phoneNumber = ref("");
+const fullName = ref("");
+const carRegistrationNumber = ref("");
 const templates = ref([]);
 const documents = ref([]);
 const customers = ref([]);
+const customerProfiles = ref([]);
 const loading = ref(false);
 const provider = ref("line");
-const previewImageUrl = ref(null); // New reactive variable for preview
+const previewImageUrl = ref(null);
+const selectedCustomerProfile = ref(null);
 
 // Computed property to validate phone number
 const isPhoneValid = computed(() => {
@@ -258,7 +312,37 @@ const isPhoneValid = computed(() => {
   return cleaned.length === 10 && cleaned.startsWith("0");
 });
 
-// New function to handle document preview
+// Computed property to filter customer profiles based on fullName and carRegistrationNumber
+const filteredCustomerProfiles = computed(() => {
+  if (!fullName.value.trim() && !carRegistrationNumber.value.trim()) {
+    return customerProfiles.value;
+  }
+
+  return customerProfiles.value.filter((profile) => {
+    let matchesName = true;
+    let matchesCar = true;
+
+    if (fullName.value.trim()) {
+      matchesName =
+        profile.full_name &&
+        profile.full_name
+          .toLowerCase()
+          .includes(fullName.value.toLowerCase().trim());
+    }
+
+    if (carRegistrationNumber.value.trim()) {
+      matchesCar =
+        profile.car_registration_number &&
+        profile.car_registration_number
+          .toLowerCase()
+          .includes(carRegistrationNumber.value.toLowerCase().trim());
+    }
+
+    return matchesName && matchesCar;
+  });
+});
+
+// Handle document preview
 function previewDocument(documentUrl) {
   previewImageUrl.value = documentUrl;
 }
@@ -267,6 +351,30 @@ function previewDocument(documentUrl) {
 function handlePhoneInput(event) {
   const value = event.target.value.replace(/\D/g, "");
   phoneNumber.value = value;
+}
+
+// Get customer display name from profile by looking up in customers table
+function getCustomerDisplayNameFromProfile(profile) {
+  const customer = customers.value.find((c) => c.id === profile.customer_id);
+  const customerName = customer
+    ? customer.display_name
+    : `Customer ID: ${profile.customer_id}`;
+
+  let displayParts = [customerName];
+
+  if (profile.full_name && profile.full_name !== customerName) {
+    displayParts.push(profile.full_name);
+  }
+
+  if (profile.car_registration_number) {
+    displayParts.push(profile.car_registration_number);
+  }
+
+  if (profile.phone_number) {
+    displayParts.push(profile.phone_number);
+  }
+
+  return displayParts.join(" | ");
 }
 
 async function fetchTemplates() {
@@ -307,7 +415,7 @@ async function fetchCustomers() {
   try {
     const { data, error } = await supabase
       .from("customers")
-      .select("id, display_name, phone_number");
+      .select("id, display_name");
 
     if (error) {
       throw error;
@@ -319,14 +427,30 @@ async function fetchCustomers() {
   }
 }
 
+async function fetchCustomerProfiles() {
+  try {
+    const { data, error } = await supabase
+      .from("customer_profiles")
+      .select("*");
+
+    if (error) {
+      throw error;
+    } else {
+      customerProfiles.value = data || [];
+    }
+  } catch (error) {
+    console.error("Error fetching customer profiles:", error);
+  }
+}
+
 async function savePhoneNumber(phoneNumber) {
   try {
     const { data, error } = await supabase
-      .from("customers")
+      .from("customer_profiles")
       .update({
         phone_number: phoneNumber,
       })
-      .eq("id", selectedUserId.value)
+      .eq("id", selectedCustomerProfile.value.id)
       .select()
       .single();
 
@@ -336,7 +460,7 @@ async function savePhoneNumber(phoneNumber) {
       return data;
     }
   } catch (error) {
-    console.error("Error saving document:", error);
+    console.error("Error saving phone number:", error);
     return null;
   }
 }
@@ -434,12 +558,15 @@ function generateSecureToken(length = 32) {
 function resetForm() {
   selectedTemplateId.value = null;
   phoneNumber.value = "";
+  fullName.value = "";
+  carRegistrationNumber.value = "";
   selectedUserId.value = null;
+  selectedCustomerProfile.value = null;
 }
 
 async function sendSms(identity, documentId, token) {
   try {
-    const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
@@ -462,8 +589,7 @@ async function sendSms(identity, documentId, token) {
 
 async function sendLine(identity, documentId, token) {
   try {
-    // const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${LIFF_BASE_URL}/user/email/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
-    const message = `à¸à¸£à¸¸à¸"à¸²à¸„à¸¥à¸´à¸à¸¥à¸´à¹‰à¸‡à¹€à¸žà¸·à¹ˆà¸­à¹€à¸‹à¹‡à¸™à¸¥à¸²à¸¢à¹€à¸‹à¹‡à¸™ ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
@@ -488,6 +614,11 @@ async function handleSubmit() {
   // Validation
   if (!selectedTemplateId.value) {
     alert("Please select a template.");
+    return;
+  }
+
+  if (!selectedCustomerProfile.value) {
+    alert("Please select a customer.");
     return;
   }
 
@@ -527,7 +658,7 @@ async function handleSubmit() {
     }
 
     if (provider.value === "line") {
-      // Save document with phone number as send_to
+      // Save document with customer ID as send_to
       documentResult = await saveDocument(selectedUserId.value, token);
 
       if (!documentResult) {
@@ -566,10 +697,17 @@ async function handleSubmit() {
       alert(`An error occurred: ${error.message || "Please try again."}`);
     }
   } finally {
+    const modalElement = $("#sendLinkModal");
+    modalElement.modal("hide");
+
+    modalElement.one("hidden.bs.modal", function () {
+      $(".modal-backdrop").remove();
+      $("body").removeClass("modal-open").css("padding-right", "");
+      resetForm();
+      fetchDocuments();
+    });
+
     loading.value = false;
-    $("#sendLinkModal").modal("hide");
-    resetForm();
-    await fetchDocuments();
   }
 }
 
@@ -590,24 +728,57 @@ function getCustomerDisplayName(userId) {
   return customer ? customer.display_name : userId;
 }
 
-function onCustomerSelect() {
-  if (selectedUserId.value && provider.value === "line") {
-    const selectedCustomer = customers.value.find(
-      (customer) => customer.id === selectedUserId.value
+watch(selectedCustomerProfile, (newProfile) => {
+  if (newProfile) {
+    selectedUserId.value = newProfile.customer_id;
+
+    if (newProfile.phone_number) {
+      phoneNumber.value = newProfile.phone_number;
+    }
+
+    if (
+      !fullName.value.trim() ||
+      fullName.value.trim() !== newProfile.full_name?.trim()
+    ) {
+      if (newProfile.full_name) {
+        fullName.value = newProfile.full_name;
+      }
+    }
+
+    if (
+      !carRegistrationNumber.value.trim() ||
+      carRegistrationNumber.value.trim() !==
+        newProfile.car_registration_number?.trim()
+    ) {
+      if (newProfile.car_registration_number) {
+        carRegistrationNumber.value = newProfile.car_registration_number;
+      }
+    }
+  } else {
+    selectedUserId.value = null;
+    phoneNumber.value = "";
+  }
+});
+
+watch([fullName, carRegistrationNumber], () => {
+  if (selectedCustomerProfile.value) {
+    const isStillValid = filteredCustomerProfiles.value.some(
+      (profile) => profile.id === selectedCustomerProfile.value.id
     );
 
-    if (selectedCustomer && selectedCustomer.phone_number) {
-      phoneNumber.value = selectedCustomer.phone_number;
-    } else {
+    if (!isStillValid) {
+      selectedCustomerProfile.value = null;
+      selectedUserId.value = null;
       phoneNumber.value = "";
     }
   }
-}
+});
 
 onMounted(async () => {
   await fetchDocuments();
   await fetchTemplates();
   await fetchCustomers();
+  await fetchCustomerProfiles();
 });
 </script>
 
