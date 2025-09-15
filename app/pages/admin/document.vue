@@ -31,7 +31,7 @@
                 <td>{{ index + 1 }}.</td>
                 <td>{{ document.contract_templates.name }}</td>
                 <td>
-                  {{ document.customer_profile_id.customers?.display_name }}
+                  {{ document.customer_profile_id.customers.display_name }}
                 </td>
                 <td>{{ document.provider }}</td>
                 <td>{{ document.status }}</td>
