@@ -31,13 +31,7 @@
                 <td>{{ index + 1 }}.</td>
                 <td>{{ document.contract_templates.name }}</td>
                 <td>
-                  {{
-                    document.provider === "line"
-                      ? getCustomerDisplayName(
-                          document.customer_profile_id.customer_id
-                        )
-                      : document.customer_profile_id.customer_id
-                  }}
+                  {{ document.customer_profile_id.customers?.display_name }}
                 </td>
                 <td>{{ document.provider }}</td>
                 <td>{{ document.status }}</td>
@@ -399,7 +393,7 @@ async function fetchDocuments() {
     const { data, error } = await supabase
       .from("documents")
       .select(
-        "id, contract_templates(name), customer_profile_id(customer_id), provider, token, status, document_url"
+        "id, contract_templates(name), customer_profile_id(customer_id, customers(display_name)), provider, token, status, document_url"
       );
 
     if (error) {
@@ -712,15 +706,6 @@ async function handleDeleteDocument(documentId) {
   }
 
   await deleteDocument(documentId);
-}
-
-function getCustomerDisplayName(userId) {
-  if (/^\d+$/.test(userId)) {
-    return userId;
-  }
-
-  const customer = customers.value.find((customer) => customer.id === userId);
-  return customer ? customer.display_name : userId;
 }
 
 watch(selectedCustomerProfile, (newProfile) => {

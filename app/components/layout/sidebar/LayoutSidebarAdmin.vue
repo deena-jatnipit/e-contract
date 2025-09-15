@@ -1,6 +1,6 @@
 <template>
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <NuxtLink to="/admin" class="brand-link">
+    <NuxtLink to="/admin/document" class="brand-link">
       <span class="brand-text font-weight-light">Nuxt AdminLTE</span>
     </NuxtLink>
 
@@ -102,6 +102,10 @@ const supabase = useSupabaseClient();
 const router = useRouter();
 
 async function logout() {
+  if (!window.confirm("Are you sure you want to logout?")) {
+    return;
+  }
+
   const { error } = await supabase.auth.signOut();
   if (error) {
     console.error("Error logging out:", error);
