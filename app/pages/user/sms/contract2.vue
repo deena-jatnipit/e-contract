@@ -103,7 +103,7 @@ const hasScrolledToBottom = ref(false);
 const contractBox = ref(null);
 const loading = ref(false);
 
-const contractParagraphs = Array.from({ length: 50 }, (_, i) => i + 1);
+const contractParagraphs = Array.from({ length: 20 }, (_, i) => i + 1);
 
 const handleScroll = () => {
   const el = contractBox.value;
@@ -133,7 +133,10 @@ async function confirmContract() {
       if (supabaseResponse) {
         router.push({
           path: "/user/sign",
-          query: { ...route.query },
+          query: {
+            documentId: route.query.documentId,
+            token: route.query.token,
+          },
         });
       }
     }
@@ -149,7 +152,7 @@ async function sendSms(message) {
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
-        msisdn: route.query.identity,
+        msisdn: route.query.msisdn,
         message: message,
       },
     });

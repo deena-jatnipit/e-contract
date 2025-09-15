@@ -33,8 +33,10 @@
                 <td>
                   {{
                     document.provider === "line"
-                      ? getCustomerDisplayName(document.send_to)
-                      : document.send_to
+                      ? getCustomerDisplayName(
+                          document.customer_profile_id.customer_id
+                        )
+                      : document.customer_profile_id.customer_id
                   }}
                 </td>
                 <td>{{ document.provider }}</td>
@@ -290,7 +292,6 @@
 <script setup>
 const supabase = useSupabaseClient();
 const PROJECT_BASE_URL = useRuntimeConfig().public.projectBaseUrl;
-const LIFF_BASE_URL = useRuntimeConfig().public.liffBaseUrl;
 
 const selectedTemplateId = ref(null);
 const selectedUserId = ref(null);
@@ -398,7 +399,7 @@ async function fetchDocuments() {
     const { data, error } = await supabase
       .from("documents")
       .select(
-        "id, contract_templates(name), send_to, provider, token, status, document_url"
+        "id, contract_templates(name), customer_profile_id(customer_id), provider, token, status, document_url"
       );
 
     if (error) {
@@ -465,14 +466,14 @@ async function savePhoneNumber(phoneNumber) {
   }
 }
 
-async function saveDocument(sendTo, token) {
+async function saveDocument(token) {
   try {
     const { data, error } = await supabase
       .from("documents")
       .insert([
         {
           template_id: selectedTemplateId.value,
-          send_to: sendTo,
+          customer_profile_id: selectedCustomerProfile.value.id,
           provider: provider.value,
           status: "sent",
           token: token,
@@ -587,9 +588,9 @@ async function sendSms(identity, documentId, token) {
   }
 }
 
-async function sendLine(identity, documentId, token) {
+async function sendLine(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/line/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
@@ -611,7 +612,6 @@ async function sendLine(identity, documentId, token) {
 }
 
 async function handleSubmit() {
-  // Validation
   if (!selectedTemplateId.value) {
     alert("Please select a template.");
     return;
@@ -658,8 +658,7 @@ async function handleSubmit() {
     }
 
     if (provider.value === "line") {
-      // Save document with customer ID as send_to
-      documentResult = await saveDocument(selectedUserId.value, token);
+      documentResult = await saveDocument(token);
 
       if (!documentResult) {
         throw new Error("Failed to save document");
@@ -672,11 +671,7 @@ async function handleSubmit() {
       }
 
       // Send Line message using phone number as identity
-      const lineResult = await sendLine(
-        cleanedPhoneNumber,
-        documentResult.id,
-        token
-      );
+      const lineResult = await sendLine(documentResult.id, token);
 
       if (lineResult?.error) {
         throw new Error(lineResult.error);

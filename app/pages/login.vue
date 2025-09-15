@@ -85,7 +85,7 @@ async function handleLogin() {
     if (profileError) throw profileError;
 
     if (profile && profile.role === "admin") {
-      router.push("/admin");
+      router.push("/admin/document");
     } else if (profile && profile.role === "staff") {
       router.push("/staff");
     }

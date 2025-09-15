@@ -37,9 +37,9 @@
         >
           <li class="nav-header">MAIN CONTENT</li>
           <li class="nav-item">
-            <NuxtLink to="/admin" class="nav-link">
-              <i class="nav-icon fas fa-tachometer-alt"></i>
-              <p>Dashboard</p>
+            <NuxtLink to="/admin/document" class="nav-link">
+              <i class="nav-icon fas fa-file"></i>
+              <p>Document</p>
             </NuxtLink>
           </li>
           <li class="nav-item menu-open">
@@ -75,12 +75,6 @@
             <NuxtLink to="/admin/customer" class="nav-link">
               <i class="nav-icon fas fa-user"></i>
               <p>Customer Details</p>
-            </NuxtLink>
-          </li>
-          <li class="nav-item">
-            <NuxtLink to="/admin/document" class="nav-link">
-              <i class="nav-icon fas fa-file"></i>
-              <p>Document</p>
             </NuxtLink>
           </li>
 

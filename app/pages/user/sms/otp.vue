@@ -39,56 +39,8 @@
                   <div>{{ state.error }}</div>
                 </div>
 
-                <!-- Phone Input Section (when no identity provided) -->
-                <div
-                  v-if="!hasIdentityFromQuery && !state.otpSent"
-                  class="mb-4"
-                >
-                  <form @submit.prevent="handleSendOtp">
-                    <div class="mb-3 text-center">
-                      <label for="phoneInput" class="form-label">
-                        หมายเลขโทรศัพท์มือถือ
-                      </label>
-                      <div class="input-group">
-                        <span class="input-group-text">
-                          <i class="fas fa-mobile-alt"></i>
-                        </span>
-                        <input
-                          id="phoneInput"
-                          v-model="state.msisdn"
-                          type="tel"
-                          class="form-control form-control-lg"
-                          placeholder="เช่น 0812345678"
-                          maxlength="10"
-                          :disabled="state.loading"
-                          @input="handlePhoneInput"
-                        />
-                      </div>
-                      <div class="form-text">
-                        กรุณากรอกหมายเลขโทรศัพท์ 10 หลัก (ขึ้นต้นด้วย 0)
-                      </div>
-                    </div>
-                    <button
-                      type="submit"
-                      class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
-                      :disabled="!isPhoneValid || state.loading"
-                    >
-                      <span
-                        v-if="state.loading"
-                        class="spinner-border spinner-border-sm me-2"
-                        role="status"
-                      ></span>
-                      <i v-else class="fas fa-paper-plane me-2"></i>
-                      {{ state.loading ? "กำลังส่ง..." : "ส่งรหัส OTP" }}
-                    </button>
-                  </form>
-                </div>
-
-                <!-- Send OTP Section (when identity is provided) -->
-                <div
-                  v-else-if="hasIdentityFromQuery && !state.otpSent"
-                  class="text-center"
-                >
+                <!-- Send OTP Section -->
+                <div v-if="!state.otpSent" class="text-center">
                   <div class="phone-display mb-4">
                     <i class="fas fa-mobile-alt text-success me-2"></i>
                     <span class="fw-semibold">{{
@@ -126,18 +78,6 @@
                     <p class="text-muted mb-3">
                       กรุณากรอกรหัส 6 หลักที่ส่งไปยังโทรศัพท์ข้างต้น
                     </p>
-                    <!-- Back to phone input button (only if identity wasn't provided) -->
-                    <div v-if="!hasIdentityFromQuery" class="mb-3">
-                      <button
-                        type="button"
-                        class="btn btn-link btn-sm text-muted"
-                        @click="handleBackToPhoneInput"
-                        :disabled="state.loading"
-                      >
-                        <i class="fas fa-arrow-left me-1"></i>
-                        เปลี่ยนหมายเลขโทรศัพท์
-                      </button>
-                    </div>
                   </div>
 
                   <form @submit.prevent="handleVerifyOtp" class="mb-4">
@@ -184,7 +124,7 @@
                       class="text-muted small"
                     >
                       <i class="fas fa-clock me-1"></i>
-                      ขอส่งรหัสใหม่ได้ใน {{ state.resendCountdown }} วินาที
+                      ขอส่งรหัสใหม่ได้ในอีก {{ state.resendCountdown }} วินาที
                     </div>
                     <div v-else>
                       <button
@@ -209,21 +149,22 @@
 </template>
 
 <script setup>
+const supabase = useSupabaseClient();
 const router = useRouter();
 const route = useRoute();
 
-const hasIdentityFromQuery = computed(() => {
-  return !!(route.query.identity && route.query.identity.trim());
-});
-
 const state = reactive({
-  msisdn: route.query.identity || "",
+  documentId: route.query.documentId || "",
+  msisdn: "",
+  userId: "",
   otpSent: false,
   resendCountdown: 0,
   error: "",
   token: "",
   loading: false,
 });
+
+const documentData = ref(null);
 
 // OTP input handling
 const otpDigits = reactive(["", "", "", "", "", ""]);
@@ -235,10 +176,27 @@ const isOtpValid = computed(() => {
   return otpDigits.every((digit) => digit !== "" && /^\d$/.test(digit));
 });
 
-const isPhoneValid = computed(() => {
-  const cleaned = state.msisdn.replace(/\D/g, "");
-  return cleaned.length === 10 && cleaned.startsWith("0");
-});
+async function fetchDocumentById() {
+  try {
+    const { data, error } = await supabase
+      .from("documents")
+      .select(
+        "id, customer_profile_id(customer_id, phone_number), provider, token, status"
+      )
+      .eq("id", state.documentId)
+      .single();
+
+    if (error) {
+      throw error;
+    } else {
+      documentData.value = data;
+      state.msisdn = documentData.value.customer_profile_id.phone_number;
+      state.userId = documentData.value.customer_profile_id.customer_id;
+    }
+  } catch (error) {
+    console.error("Error fetching documents:", error);
+  }
+}
 
 function formatPhoneNumber(msisdn) {
   if (!msisdn) return "";
@@ -247,13 +205,6 @@ function formatPhoneNumber(msisdn) {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
   return msisdn;
-}
-
-function handlePhoneInput(event) {
-  // Only allow digits
-  const value = event.target.value.replace(/\D/g, "");
-  state.msisdn = value;
-  clearError();
 }
 
 function getOtpValue() {
@@ -274,18 +225,6 @@ function resetOtpInput() {
       otpInputs.value[0].focus();
     }
   });
-}
-
-function handleBackToPhoneInput() {
-  state.otpSent = false;
-  state.token = "";
-  clearError();
-  if (resendTimer) {
-    clearInterval(resendTimer);
-    resendTimer = null;
-    state.resendCountdown = 0;
-  }
-  resetOtpInput();
 }
 
 function handleOtpInput(index, event) {
@@ -464,7 +403,7 @@ async function handleVerifyOtp() {
 
     await router.push({
       path: "/user/sms/contract1",
-      query: { ...route.query, identity: state.msisdn },
+      query: { msisdn: state.msisdn, ...route.query },
     });
   } catch (error) {
     console.error("Error verifying OTP:", error);
@@ -475,9 +414,7 @@ async function handleVerifyOtp() {
 }
 
 onMounted(() => {
-  if (!hasIdentityFromQuery.value) {
-    clearError();
-  }
+  fetchDocumentById();
 });
 
 onBeforeUnmount(() => {

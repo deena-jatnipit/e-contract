@@ -375,7 +375,9 @@ async function fetchDocument() {
   try {
     const { data, error } = await supabase
       .from("documents")
-      .select("*")
+      .select(
+        "id, template_id, customer_profile_id(customer_id), provider, token, status, document_url"
+      )
       .eq("id", documentId)
       .single();
     if (error || !data) {
@@ -704,7 +706,7 @@ async function sendSms(msisdn) {
       throw new Error(response.error);
     }
 
-    console.log("SMS sent successfully:", response);
+    console.log("SMS sent successfully");
   } catch (error) {
     throw error;
   }
@@ -741,7 +743,7 @@ async function sendLine(userId, documentUrl = null) {
       throw new Error(response.error);
     }
 
-    console.log("Line message sent successfully:", response);
+    console.log("Line message sent successfully");
   } catch (error) {
     throw error;
   }
@@ -773,11 +775,14 @@ async function sendTelegram() {
 async function sendNotification(documentUrl) {
   try {
     if (documentData.value.provider === "line") {
-      await sendLine(documentData.value.send_to, documentUrl);
+      await sendLine(
+        documentData.value.customer_profile_id.customer_id,
+        documentUrl
+      );
     }
 
     if (documentData.value.provider === "sms") {
-      await sendSms(documentData.value.send_to);
+      await sendSms(documentData.value.customer_profile_id.phone_number);
     }
 
     await sendTelegram();
