@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
 
   const API_URL = "https://email-api.thaibulksms.com/email/v1/otp/verify";
-  const API_AUTH = `Basic ${config.public.tbsAuth}`;
+  const API_AUTH = `Basic ${config.tbsAuth}`;
 
   const bodyData = {
     otp_code: body.otp_code,

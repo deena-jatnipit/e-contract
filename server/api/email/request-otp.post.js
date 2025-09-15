@@ -4,7 +4,7 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
 
   const API_URL = "https://email-api.thaibulksms.com/email/v1/otp/send";
-  const API_AUTH = `Basic ${config.public.tbsAuth}`;
+  const API_AUTH = `Basic ${config.tbsAuth}`;
 
   const bodyData = {
     template_uuid: config.public.emailTemplateUuid,

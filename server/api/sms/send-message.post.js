@@ -1,32 +1,26 @@
-import {
-  createApiError,
-  handleApiError,
-  validateRequestBody,
-} from "~/server/utils/errorHandler.js";
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from "~/server/utils/responseHandler.js";
-
 export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  const {
+    msisdn,
+    message,
+    sender = "DeenaSure",
+    force = "corporate",
+  } = body || {};
+
+  const config = useRuntimeConfig();
+
+  const API_URL = "https://api-v2.thaibulksms.com/sms";
+  const API_AUTH = `Basic ${config.tbsAuth}`;
+  // const API_AUTH = `Basic`;
+
+  const params = new URLSearchParams();
+  params.set("msisdn", msisdn);
+  params.set("message", message);
+  params.set("sender", sender);
+  params.set("force", force);
+
   try {
-    const body = await readBody(event);
-
-    // Validate required fields
-    validateRequestBody(body, ["msisdn", "message"]);
-
-    const { msisdn, message, sender = "DeenaSure", force = "corporate" } = body;
-
-    const config = useRuntimeConfig();
-    const API_AUTH = `Basic ${config.tbsAuth}`; // Server-side only
-
-    const params = new URLSearchParams();
-    params.set("msisdn", msisdn);
-    params.set("message", message);
-    params.set("sender", sender);
-    params.set("force", force);
-
-    const response = await $fetch("https://api-v2.thaibulksms.com/sms", {
+    const response = await $fetch(API_URL, {
       method: "POST",
       headers: {
         accept: "application/json",
@@ -35,10 +29,8 @@ export default defineEventHandler(async (event) => {
       },
       body: params,
     });
-
-    return createSuccessResponse(response, "SMS sent successfully");
+    return response;
   } catch (error) {
-    const handledError = handleApiError(error, "send-sms");
-    return createErrorResponse(handledError, "Failed to send SMS");
+    return { error: error.message || "Failed to send SMS" };
   }
 });
