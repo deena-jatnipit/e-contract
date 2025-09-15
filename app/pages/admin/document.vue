@@ -559,14 +559,14 @@ function resetForm() {
   selectedCustomerProfile.value = null;
 }
 
-async function sendSms(identity, documentId, token) {
+async function sendSms(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?identity=${identity}&documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
-        msisdn: identity,
+        msisdn: phoneNumber.value,
         message,
       },
     });
@@ -640,11 +640,7 @@ async function handleSubmit() {
         throw new Error("Failed to save document");
       }
 
-      const smsResult = await sendSms(
-        cleanedPhoneNumber,
-        documentResult.id,
-        token
-      );
+      const smsResult = await sendSms(documentResult.id, token);
 
       if (smsResult?.error) {
         throw new Error(smsResult.error);

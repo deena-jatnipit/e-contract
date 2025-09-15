@@ -210,7 +210,6 @@
 const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
-const config = useRuntimeConfig();
 
 const documentId = route.query.documentId;
 const token = route.query.token;
@@ -621,7 +620,7 @@ async function handleSubmit() {
 
     if (error) throw new Error("Database error: " + error.message);
 
-    await sendNotification(data.document_url);
+    await sendNotification(data.id, data.document_url);
 
     router.push("/user/sign-success");
   } catch (error) {
@@ -749,30 +748,30 @@ async function sendLine(userId, documentUrl = null) {
   }
 }
 
-async function sendTelegram() {
-  const botToken = config.public.telegramBotToken;
-  const chatId = config.public.telegramAdminChatId;
+async function sendTelegram(documentId = null) {
+  try {
+    const message = `เอกสาร ${documentId || documentId.value} ได้รับการเซ็นลายเซ็นเรียบร้อยแล้ว`;
 
-  const message = `เอกสาร ${documentId} ได้รับการเซ็นลายเซ็นเรียบร้อยแล้ว`;
-
-  const response = await $fetch(
-    `https://api.telegram.org/bot${botToken}/sendMessage`,
-    {
+    const response = await $fetch("/api/telegram/send-message", {
       method: "POST",
       body: {
-        chat_id: chatId,
-        text: message,
+        message,
+        documentId: documentId || documentId.value,
       },
+    });
+
+    if (response?.error) {
+      throw new Error(response.error);
     }
-  );
-  if (response.ok) {
+
     console.log("Telegram message sent successfully");
-  } else {
-    console.error("Failed to send Telegram message");
+  } catch (error) {
+    console.error("Failed to send Telegram message:", error);
+    throw error;
   }
 }
 
-async function sendNotification(documentUrl) {
+async function sendNotification(documentId, documentUrl) {
   try {
     if (documentData.value.provider === "line") {
       await sendLine(
@@ -785,7 +784,7 @@ async function sendNotification(documentUrl) {
       await sendSms(documentData.value.customer_profile_id.phone_number);
     }
 
-    await sendTelegram();
+    await sendTelegram(documentId);
   } catch (error) {
     console.error("Error sending notification:", error);
   }
