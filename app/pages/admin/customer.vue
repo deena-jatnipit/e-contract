@@ -32,7 +32,7 @@
                 :key="profile.id"
               >
                 <td>{{ index + 1 }}.</td>
-                <td>{{ getCustomerDisplayName(profile.customer_id) }}</td>
+                <td>{{ profile.customer_id.display_name }}</td>
                 <td>{{ profile.full_name }}</td>
                 <td>{{ profile.car_registration_number }}</td>
                 <td>{{ profile.phone_number }}</td>
@@ -105,16 +105,13 @@
                         Select customer line name
                       </option>
                       <option
-                        v-for="customer in availableCustomers"
+                        v-for="customer in customers"
                         :key="customer.id"
                         :value="customer.id"
                       >
                         {{ customer.display_name || customer.id }}
                       </option>
                     </select>
-                    <small v-if="isEditing" class="form-text text-muted">
-                      Customer cannot be changed when editing
-                    </small>
                   </div>
                 </div>
                 <div class="col-md-6">
@@ -220,20 +217,6 @@ const isPhoneValid = computed(() => {
   return cleaned.length === 10 && cleaned.startsWith("0");
 });
 
-// Get available customers (exclude customers that already have profiles when adding)
-const availableCustomers = computed(() => {
-  if (isEditing.value) {
-    return customers.value;
-  }
-
-  const usedCustomerIds = customerProfiles.value.map(
-    (profile) => profile.customer_id
-  );
-  return customers.value.filter(
-    (customer) => !usedCustomerIds.includes(customer.id)
-  );
-});
-
 // Handle phone input to allow only digits
 function handlePhoneInput(event) {
   const value = event.target.value.replace(/\D/g, "");
@@ -244,7 +227,9 @@ async function getCustomerProfiles() {
   try {
     const { data, error } = await supabase
       .from("customer_profiles")
-      .select("*")
+      .select(
+        "customer_id(id, display_name), full_name, car_registration_number, phone_number, created_at"
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -387,13 +372,6 @@ async function deleteProfile(profileId) {
   } catch (error) {
     console.error("Error deleting customer profile:", error);
   }
-}
-
-function getCustomerDisplayName(customerId) {
-  const customer = customers.value.find(
-    (customer) => customer.id === customerId
-  );
-  return customer ? customer.display_name || customer.id : customerId;
 }
 
 onMounted(() => {
