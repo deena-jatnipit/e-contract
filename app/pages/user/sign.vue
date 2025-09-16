@@ -751,7 +751,6 @@ async function sendTelegram(documentId = null) {
       method: "POST",
       body: {
         message,
-        documentId: documentId || documentId.value,
       },
     });
 
