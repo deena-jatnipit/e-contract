@@ -1,25 +1,9 @@
 export default defineEventHandler(async (event) => {
   try {
-    // Rate limiting: 5 requests per minute per IP
-    const clientIP = getClientIP(event);
-    const rateLimitResult = rateLimit(`line_${clientIP}`, 5, 60000);
-
-    if (!rateLimitResult.allowed) {
-      throw createApiError(
-        429,
-        "Too many requests. Please try again later.",
-        "RATE_LIMIT_EXCEEDED"
-      );
-    }
-
     const body = await readBody(event);
-    validateRequestBody(body, ["userId"]);
 
-    // Validate and sanitize userId
-    const userIdValidation = validateUserId(body.userId);
-    if (!userIdValidation.isValid) {
-      throw createApiError(400, userIdValidation.error, "INVALID_USER_ID");
-    }
+    // Validate required fields
+    validateRequestBody(body, ["userId"]);
 
     // Validate message content
     if (!body.messages && !body.message) {
@@ -30,24 +14,17 @@ export default defineEventHandler(async (event) => {
       );
     }
 
-    // Process and sanitize messages
+    // Process messages
     let messages;
     if (body.messages && Array.isArray(body.messages)) {
-      messages = body.messages.map((msg) => ({
-        ...msg,
-        text: msg.text ? sanitizeInput(msg.text) : msg.text,
-      }));
+      messages = body.messages;
     } else if (body.message) {
-      messages = [
-        {
-          type: "text",
-          text: sanitizeInput(body.message),
-        },
-      ];
+      messages = [{ type: "text", text: body.message }];
     }
 
+    // Get LINE access token from server-side config
     const config = useRuntimeConfig();
-    const LINE_CHANNEL_ACCESS_TOKEN = config.lineAccessToken;
+    const LINE_CHANNEL_ACCESS_TOKEN = config.lineAccessToken; // Server-side only
 
     if (!LINE_CHANNEL_ACCESS_TOKEN) {
       throw createApiError(
@@ -58,7 +35,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const payload = {
-      to: userIdValidation.cleaned,
+      to: body.userId,
       messages: messages,
     };
 
