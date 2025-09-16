@@ -28,7 +28,6 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
-    // Server-side only (sensitive data)
     lineAccessToken: process.env.LINE_ACCESS_TOKEN,
     tbsAuth: process.env.TBS_AUTH,
     otpSecret: process.env.TBS_OTP_SECRET,
@@ -37,7 +36,6 @@ export default defineNuxtConfig({
     telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID,
     supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
 
-    // Public (safe for client-side)
     public: {
       supabaseUrl: process.env.SUPABASE_URL,
       supabaseAnonKey: process.env.SUPABASE_KEY,
