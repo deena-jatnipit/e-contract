@@ -1,17 +1,23 @@
 export default defineEventHandler(async (event) => {
-  const body = await readBody(event);
-  const { message, documentId = null } = body;
-
-  const config = useRuntimeConfig();
-  const botToken = config.telegramBotToken;
-  const chatId = config.telegramAdminChatId;
-
-  // Add document ID to message if provided
-  const fullMessage = documentId
-    ? `เอกสาร ${documentId} ได้รับการเซ็นลายเซ็นเรียบร้อยแล้ว\n\n${message}`
-    : message;
-
   try {
+    const body = await readBody(event);
+    validateRequestBody(body, ["message"]);
+
+    const config = useRuntimeConfig();
+    const botToken = config.telegramBotToken; // Server-side only
+    const chatId = config.telegramAdminChatId; // Server-side only
+
+    if (!botToken || !chatId) {
+      throw createApiError(
+        500,
+        "Telegram configuration missing",
+        "MISSING_CONFIG"
+      );
+    }
+
+    const { message, parseMode = "HTML" } = body;
+    const sanitizedMessage = sanitizeInput(message);
+
     const response = await $fetch(
       `https://api.telegram.org/bot${botToken}/sendMessage`,
       {
@@ -21,18 +27,26 @@ export default defineEventHandler(async (event) => {
         },
         body: {
           chat_id: chatId,
-          text: fullMessage,
+          text: sanitizedMessage,
+          parse_mode: parseMode,
         },
       }
     );
 
-    if (response.ok) {
-      return { message: "Telegram message sent successfully", data: response };
-    } else {
-      return { error: "Failed to send Telegram message" };
+    if (!response.ok) {
+      throw createApiError(
+        500,
+        "Failed to send Telegram message",
+        "TELEGRAM_SEND_FAILED"
+      );
     }
+
+    return createSuccessResponse(
+      response,
+      "Telegram message sent successfully"
+    );
   } catch (error) {
-    console.error("Error sending Telegram message:", error);
-    return { error: "Failed to send Telegram message" };
+    const handledError = handleApiError(error, "send-telegram-message");
+    return createErrorResponse(handledError, "Failed to send Telegram message");
   }
 });
