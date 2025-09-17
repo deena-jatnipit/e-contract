@@ -244,7 +244,6 @@ const fields = ref([]);
 const loading = ref(false);
 const errorMessage = ref(null);
 const isEditing = ref(false);
-const fillableClass = ref("");
 
 const currentField = ref({
   id: null,

@@ -99,7 +99,6 @@
                       class="form-control"
                       v-model="currentProfile.customer_id"
                       required
-                      :disabled="isEditing"
                     >
                       <option :value="null" hidden>
                         Select customer line name
@@ -228,7 +227,7 @@ async function getCustomerProfiles() {
     const { data, error } = await supabase
       .from("customer_profiles")
       .select(
-        "customer_id(id, display_name), full_name, car_registration_number, phone_number, created_at"
+        "id, customer_id(id, display_name), full_name, car_registration_number, phone_number, created_at"
       )
       .order("created_at", { ascending: false });
 
@@ -256,7 +255,11 @@ async function getCustomers() {
 function openEditModal(profile) {
   isEditing.value = true;
   currentProfile.value = {
-    ...profile,
+    id: profile.id,
+    customer_id: profile.customer_id.id,
+    full_name: profile.full_name,
+    car_registration_number: profile.car_registration_number,
+    phone_number: profile.phone_number,
   };
   $("#customerProfileModal").modal("show");
 }
