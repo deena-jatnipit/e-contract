@@ -14,16 +14,8 @@ export default defineNuxtConfig({
 
   app: {
     head: {
-      script: [
-        {
-          src: "https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js",
-          type: "text/javascript",
-        },
-        {
-          src: "https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js",
-          type: "text/javascript",
-        },
-      ],
+      link: [],
+      script: [],
     },
   },
 
