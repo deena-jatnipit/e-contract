@@ -130,7 +130,7 @@ async function confirmContract() {
     if (lineResponse) {
       const supabaseResponse = await updateDocumentStatus();
 
-      if (supabaseResponse) { 
+      if (supabaseResponse) {
         router.push({
           path: "/user/line/contract2",
           query: { ...route.query },
@@ -175,8 +175,7 @@ async function updateDocumentStatus() {
       })
       .eq("id", route.query.documentId)
       .eq("token", route.query.token)
-      .select()
-      .single();
+      .select();
 
     if (error) {
       throw error;
