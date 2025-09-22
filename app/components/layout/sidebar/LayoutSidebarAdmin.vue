@@ -74,7 +74,7 @@
           <li class="nav-item">
             <NuxtLink to="/admin/customer" class="nav-link">
               <i class="nav-icon fas fa-user"></i>
-              <p>Customer Details</p>
+              <p>Customer Profiles</p>
             </NuxtLink>
           </li>
 
