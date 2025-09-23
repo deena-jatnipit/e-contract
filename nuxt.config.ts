@@ -35,6 +35,7 @@ export default defineNuxtConfig({
     otpKey: process.env.TBS_OTP_KEY,
     telegramBotToken: process.env.TELEGRAM_BOT_TOKEN,
     telegramAdminChatId: process.env.TELEGRAM_ADMIN_CHAT_ID,
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY,
 
     // Public (safe for client-side)
     public: {
@@ -48,9 +49,10 @@ export default defineNuxtConfig({
 
   supabase: {
     redirectOptions: {
-      login: "/login",
-      callback: "/login",
+      login: "/auth/login",
+      callback: "/auth/login",
       exclude: [
+        "/auth/accept-invitation",
         "/user/sign",
         "/user/sign-success",
         "/user/sms/otp",
