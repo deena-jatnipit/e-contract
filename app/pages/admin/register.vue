@@ -79,8 +79,7 @@ async function handleInviteUser() {
           fullname: fullName.value,
           role: role.value,
         },
-        // redirectTo: `${config.public.projectBaseUrl}/auth/accept-invitation`,
-        redirectTo: `http://localhost:3000/auth/accept-invitation`,
+        redirectTo: `${config.public.projectBaseUrl}/auth/accept-invitation`,
       },
     });
 
