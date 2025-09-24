@@ -375,7 +375,7 @@ async function fetchDocument() {
     const { data, error } = await supabase
       .from("documents")
       .select(
-        "id, template_id, customer_profile_id(customer_id), provider, token, status, document_url"
+        "id, template_id, customer_profile_id(customer_id, phone_number), provider, token, status, document_url"
       )
       .eq("id", documentId)
       .single();
