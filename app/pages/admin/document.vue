@@ -634,7 +634,7 @@ async function handleSubmit() {
     const token = generateSecureToken();
 
     if (provider.value === "sms") {
-      documentResult = await saveDocument(cleanedPhoneNumber, token);
+      documentResult = await saveDocument(token);
 
       if (!documentResult) {
         throw new Error("Failed to save document");
