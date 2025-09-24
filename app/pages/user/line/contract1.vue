@@ -175,7 +175,7 @@ async function updateDocumentStatus() {
       })
       .eq("id", route.query.documentId)
       .eq("token", route.query.token)
-      .select();
+      .select()
 
     if (error) {
       throw error;
