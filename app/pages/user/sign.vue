@@ -635,8 +635,15 @@ function handleGroupedFieldInput(groupId, inputValue) {
     (g) => g.groupId === groupId
   );
   if (!group) return;
+
+  group.fields.forEach((field) => {
+    formFields[field.instanceId] = "";
+  });
+
   inputValue.split("").forEach((char, i) => {
-    formFields[group.fields[i]?.instanceId] = char || "";
+    if (group.fields[i]) {
+      formFields[group.fields[i].instanceId] = char || "";
+    }
   });
 }
 
