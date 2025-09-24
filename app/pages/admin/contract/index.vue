@@ -194,15 +194,28 @@ async function addContract() {
       },
     ]);
     if (error) throw error;
+
+    const modalElement = $("#addContractModal");
+    modalElement.modal("hide");
+
+    modalElement.one("hidden.bs.modal", function () {
+      $(".modal-backdrop").remove();
+      $("body").removeClass("modal-open").css("padding-right", "");
+      resetForm();
+    });
+
     await getContracts();
-    $("#addContractModal").modal("hide");
-    newContract.value = { name: "", company_name: "", is_active: true };
   } catch (error) {
     console.error("Error adding contract:", error);
     errorMessage.value = error.message;
   } finally {
     loading.value = false;
   }
+}
+
+function resetForm() {
+  newContract.value = { name: "", company_name: "", is_active: true };
+  errorMessage.value = null;
 }
 
 async function toggleContractStatus(contract) {
@@ -242,5 +255,9 @@ async function deleteContract(contractId) {
 
 onMounted(() => {
   getContracts();
+
+  $("#addContractModal").on("hide.bs.modal", function () {
+    resetForm();
+  });
 });
 </script>
