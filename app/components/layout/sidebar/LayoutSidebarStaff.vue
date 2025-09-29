@@ -1,7 +1,7 @@
 <template>
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <NuxtLink to="/staff" class="brand-link">
-      <span class="brand-text font-weight-light">Nuxt staffLTE</span>
+      <span class="brand-text font-weight-light">E-Contract Staff Panel</span>
     </NuxtLink>
 
     <div class="sidebar">
