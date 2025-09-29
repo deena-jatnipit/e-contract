@@ -206,7 +206,18 @@ async function verifyInvitation() {
     }
   } catch (err) {
     console.error("Invitation verification error:", err);
-    error.value = err.message || "Invalid or expired invitation";
+    if (err.message?.includes("expired")) {
+      error.value =
+        "ลิงก์คำเชิญหมดอายุแล้ว กรุณาติดต่อผู้ดูแลระบบเพื่อขอลิงก์ใหม่";
+    } else if (err.message?.includes("invalid")) {
+      error.value =
+        "ลิงก์คำเชิญไม่ถูกต้อง กรุณาตรวจสอบลิงก์ในอีเมลของคุณอีกครั้ง";
+    } else if (err.message?.includes("network")) {
+      error.value =
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+    } else {
+      error.value = "เกิดข้อผิดพลาดในการตรวจสอบคำเชิญ กรุณาลองใหม่ภายหลัง";
+    }
   } finally {
     loading.value = false;
   }
@@ -215,12 +226,12 @@ async function verifyInvitation() {
 // Handle password setup
 async function handleSetPassword() {
   if (password.value !== confirmPassword.value) {
-    errorMessage.value = "Passwords do not match";
+    errorMessage.value = "รหัสผ่านไม่ตรงกัน กรุณาตรวจสอบอีกครั้ง";
     return;
   }
 
   if (password.value.length < 6) {
-    errorMessage.value = "Password must be at least 6 characters long";
+    errorMessage.value = "รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร";
     return;
   }
 
@@ -248,8 +259,9 @@ async function handleSetPassword() {
     }, 3000);
   } catch (err) {
     console.error("Password setup error:", err);
-    errorMessage.value =
-      err.message || "Failed to set password. Please try again.";
+    errorMessage.value = err.message?.includes("network")
+      ? "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"
+      : "เกิดข้อผิดพลาดในการตั้งรหัสผ่าน กรุณาลองใหม่อีกครั้ง";
   } finally {
     isSubmitting.value = false;
   }

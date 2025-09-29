@@ -84,7 +84,7 @@ async function handleInviteUser() {
     });
 
     if (response.success) {
-      successMessage.value = `Invitation sent successfully to ${email.value}! The user will receive an email with instructions to set up their account.`;
+      successMessage.value = `ส่งคำเชิญไปยัง ${email.value} เรียบร้อยแล้ว! ผู้ใช้จะได้รับอีเมลพร้อมคำแนะนำในการตั้งค่าบัญชี`;
 
       // Clear form
       fullName.value = "";
@@ -93,7 +93,16 @@ async function handleInviteUser() {
     }
   } catch (error) {
     console.error("Invitation error:", error);
-    errorMessage.value = error.data?.message || "Failed to send invitation";
+    if (error.data?.message?.includes("already exists")) {
+      errorMessage.value = "อีเมลนี้ถูกใช้งานในระบบแล้ว กรุณาใช้อีเมลอื่น";
+    } else if (error.data?.message?.includes("invalid email")) {
+      errorMessage.value = "รูปแบบอีเมลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง";
+    } else if (error.message?.includes("network")) {
+      errorMessage.value =
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+    } else {
+      errorMessage.value = "เกิดข้อผิดพลาดในการส่งคำเชิญ กรุณาลองใหม่ภายหลัง";
+    }
   } finally {
     loading.value = false;
   }

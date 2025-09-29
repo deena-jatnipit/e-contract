@@ -208,7 +208,16 @@ async function addContract() {
     await getContracts();
   } catch (error) {
     console.error("Error adding contract:", error);
-    errorMessage.value = error.message;
+    if (error.message.includes("duplicate")) {
+      errorMessage.value = "มีสัญญานี้อยู่ในระบบแล้ว กรุณาใช้ชื่อสัญญาอื่น";
+    } else if (error.message.includes("not found")) {
+      errorMessage.value = "ไม่พบข้อมูลที่ต้องการ กรุณาลองใหม่อีกครั้ง";
+    } else if (error.message.includes("network")) {
+      errorMessage.value =
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+    } else {
+      errorMessage.value = "เกิดข้อผิดพลาดในการเพิ่มสัญญา กรุณาลองใหม่ภายหลัง";
+    }
   } finally {
     loading.value = false;
   }
@@ -232,11 +241,22 @@ async function toggleContractStatus(contract) {
     await getContracts();
   } catch (error) {
     console.error("Error updating status:", error);
+    if (error.message.includes("network")) {
+      alert(
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"
+      );
+    } else {
+      alert("เกิดข้อผิดพลาดในการอัปเดตสถานะสัญญา กรุณาลองใหม่อีกครั้ง");
+    }
   }
 }
 
 async function deleteContract(contractId) {
-  if (!window.confirm("Are you sure you want to delete this contract?")) {
+  if (
+    !window.confirm(
+      "คุณแน่ใจหรือไม่ว่าต้องการลบสัญญานี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+    )
+  ) {
     return;
   }
 
@@ -251,6 +271,15 @@ async function deleteContract(contractId) {
     await getContracts();
   } catch (error) {
     console.error("Error deleting contract:", error);
+    if (error.message.includes("foreign key")) {
+      alert("ไม่สามารถลบสัญญานี้ได้ เนื่องจากมีการใช้งานอยู่ในส่วนอื่นของระบบ");
+    } else if (error.message.includes("network")) {
+      alert(
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"
+      );
+    } else {
+      alert("เกิดข้อผิดพลาดในการลบสัญญา กรุณาลองใหม่อีกครั้ง");
+    }
   }
 }
 

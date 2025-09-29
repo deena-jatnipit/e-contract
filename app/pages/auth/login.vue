@@ -90,7 +90,16 @@ async function handleLogin() {
       router.push("/staff");
     }
   } catch (error) {
-    errorMessage.value = "ล็อกอินไม่สำเร็จ";
+    if (error.message.includes("Invalid login credentials")) {
+      errorMessage.value = "อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง";
+    } else if (error.message.includes("Email not confirmed")) {
+      errorMessage.value = "กรุณายืนยันอีเมลของคุณก่อนเข้าสู่ระบบ";
+    } else if (error.message.includes("network")) {
+      errorMessage.value =
+        "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต";
+    } else {
+      errorMessage.value = "เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่ภายหลัง";
+    }
   } finally {
     loading.value = false;
   }
