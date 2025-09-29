@@ -159,12 +159,13 @@ const newContract = ref({
 function formatDateTime(isoString) {
   if (!isoString) return "-";
   const date = new Date(isoString);
-  return date.toLocaleDateString("en-GB", {
+  return date.toLocaleString("th-TH", {
     day: "2-digit",
     month: "short",
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
 }
 
