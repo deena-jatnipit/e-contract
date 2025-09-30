@@ -21,8 +21,8 @@
                 <th style="width: 10px">#</th>
                 <th>Field Name</th>
                 <th>Field Label</th>
-                <th>Field Type</th>
-                <th>Fillable</th>
+                <th style="width: 100px">Field Type</th>
+                <th class="text-center" style="width: 60px">Fillable</th>
                 <th class="text-center" style="width: 180px">Actions</th>
               </tr>
             </thead>
@@ -34,7 +34,7 @@
                 <td>
                   <span class="badge bg-info">{{ field.type }}</span>
                 </td>
-                <td>
+                <td class="text-center">
                   <span
                     class="badge"
                     :class="field.is_fillable ? 'bg-success' : 'bg-danger'"
@@ -123,28 +123,21 @@
                 </div>
               </div>
 
-              <div v-if="currentField.type !== 'Icon'" class="form-group">
+              <div
+                v-if="currentField.type !== 'Icon' && !currentField.is_fillable"
+                class="form-group"
+              >
                 <label for="fieldLabel">
                   Field Label
-                  <span v-if="!currentField.is_fillable" class="text-danger"
-                    >*</span
-                  >
+                  <span class="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   class="form-control"
                   id="fieldLabel"
                   v-model="currentField.label"
-                  :required="!currentField.is_fillable"
+                  required
                 />
-                <small class="form-text text-muted">
-                  <span v-if="currentField.is_fillable">
-                    This field will be filled by users, label is optional.
-                  </span>
-                  <span v-else>
-                    This field displays static content, label is required.
-                  </span>
-                </small>
               </div>
 
               <div v-if="currentField.type === 'Icon'" class="form-group">
@@ -300,8 +293,8 @@ function resetForm() {
 }
 
 function onFillableChange() {
-  if (currentField.value.is_fillable && currentField.value.label) {
-    currentField.value.label = "";
+  if (currentField.value.is_fillable) {
+    currentField.value.label = ""; // Clear the label when is_fillable is checked
   }
 }
 
