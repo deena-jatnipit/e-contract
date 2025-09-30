@@ -21,7 +21,7 @@
                 <th style="width: 10px">#</th>
                 <th>Name</th>
                 <th>Company Name</th>
-                <th class="text-center">Status</th>
+                <th class="text-center" style="width: 100px">Status</th>
                 <th>Created At</th>
                 <th class="text-center" style="width: 180px">Actions</th>
               </tr>
