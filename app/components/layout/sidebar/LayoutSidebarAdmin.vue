@@ -1,7 +1,9 @@
 <template>
   <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <NuxtLink to="/admin/document" class="brand-link">
-      <span class="brand-text font-weight-light">E-Contract Admin Panel</span>
+      <span class="text-center brand-text font-weight-light"
+        >E-Contract Admin Panel</span
+      >
     </NuxtLink>
 
     <div class="sidebar">

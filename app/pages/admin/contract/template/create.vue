@@ -27,11 +27,16 @@
               <input
                 type="text"
                 class="form-control"
+                :class="{ 'is-invalid': templateNameError }"
                 id="newTemplateName"
                 v-model="newTemplateName"
+                @input="validateTemplateName"
                 placeholder="Enter name for new template"
                 required
               />
+              <div class="invalid-feedback" v-if="templateNameError">
+                {{ templateNameError }}
+              </div>
             </div>
           </div>
         </div>
@@ -122,8 +127,11 @@
 <script setup>
 const supabase = useSupabaseClient();
 const router = useRouter();
+import { validateTemplateNameFormat } from "~/utils/validators";
+const hasChanges = ref(false);
 
 const newTemplateName = ref("");
+const templateNameError = ref("");
 const previewImageUrl = ref(null);
 const placedFields = ref([]);
 const selectedField = ref(null);
@@ -268,7 +276,16 @@ function handleFieldRemoval(instanceId) {
   }
 }
 
+function validateTemplateName() {
+  const result = validateTemplateNameFormat(newTemplateName.value);
+  templateNameError.value = result.isValid ? "" : result.message;
+  return result.isValid;
+}
+
 function handleTemplateSaved() {
+  if (!validateTemplateName()) {
+    return;
+  }
   router.back();
 }
 
@@ -301,12 +318,46 @@ function handleTemplateSaved() {
 onMounted(async () => {
   await fetchContracts();
   document.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("beforeunload", handleBeforeUnload);
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
   if (previewImageUrl.value) {
     URL.revokeObjectURL(previewImageUrl.value);
+  }
+});
+
+function handleBeforeUnload(e) {
+  if (hasChanges.value) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+}
+
+watch(
+  [newTemplateName, placedFields, uploadedFile],
+  () => {
+    hasChanges.value = true;
+  },
+  { deep: true }
+);
+
+onBeforeRouteLeave((to, from, next) => {
+  if (!hasChanges.value) {
+    next();
+    return;
+  }
+
+  if (
+    window.confirm(
+      "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
+    )
+  ) {
+    next();
+  } else {
+    next(false);
   }
 });
 

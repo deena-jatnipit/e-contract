@@ -14,11 +14,16 @@
               <input
                 type="text"
                 class="form-control"
+                :class="{ 'is-invalid': templateNameError }"
                 id="currentTemplateName"
                 v-model="currentTemplateName"
+                @input="validateTemplateName"
                 placeholder="Enter name for a template"
                 required
               />
+              <div class="invalid-feedback" v-if="templateNameError">
+                {{ templateNameError }}
+              </div>
             </div>
           </div>
         </div>
@@ -128,8 +133,11 @@
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient();
+import { validateTemplateNameFormat } from "~/utils/validators";
 
 const selectedTemplateId = computed(() => route.query.id || null);
+const hasChanges = ref(false);
+const templateNameError = ref("");
 
 const currentTemplateName = ref("");
 const availableFields = ref([]);
@@ -563,7 +571,16 @@ async function saveImagesToStorage(templateName, compositeBlob) {
   };
 }
 
+function validateTemplateName() {
+  const result = validateTemplateNameFormat(currentTemplateName.value);
+  templateNameError.value = result.isValid ? "" : result.message;
+  return result.isValid;
+}
+
 async function saveTemplate() {
+  if (!validateTemplateName()) {
+    return;
+  }
   try {
     if (!previewImageUrl.value) {
       alert("Please upload a background image first");
@@ -825,6 +842,7 @@ function handleFieldRemoval(instanceId) {
 onMounted(async () => {
   await fetchTemplateAndFields();
   document.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("beforeunload", handleBeforeUnload);
 });
 
 onUnmounted(() => {
@@ -833,6 +851,7 @@ onUnmounted(() => {
   document.removeEventListener("touchmove", drag);
   document.removeEventListener("touchend", stopDrag);
   document.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("beforeunload", handleBeforeUnload);
 
   if (previewImageUrl.value && previewImageUrl.value.startsWith("blob:")) {
     URL.revokeObjectURL(previewImageUrl.value);
@@ -842,6 +861,38 @@ onUnmounted(() => {
 watch(selectedTemplateId, (newId) => {
   if (newId) {
     fetchTemplateAndFields();
+  }
+});
+
+watch(
+  [currentTemplateName, placedFields],
+  () => {
+    hasChanges.value = true;
+  },
+  { deep: true }
+);
+
+function handleBeforeUnload(e) {
+  if (hasChanges.value) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
+}
+
+onBeforeRouteLeave((to, from, next) => {
+  if (!hasChanges.value) {
+    next();
+    return;
+  }
+
+  if (
+    window.confirm(
+      "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
+    )
+  ) {
+    next();
+  } else {
+    next(false);
   }
 });
 

@@ -210,7 +210,7 @@
                     @change="onFillableChange"
                   />
                   <label class="form-check-label" for="fieldIsFillable">
-                    Is Fillable?
+                    User Input?
                   </label>
                 </div>
                 <small class="form-text text-muted">
@@ -330,7 +330,6 @@ async function saveField() {
   loading.value = true;
   errorMessage.value = null;
 
-  // Validate required label for non-fillable fields
   if (
     !currentField.value.is_fillable &&
     currentField.value.type !== "Signature" &&
