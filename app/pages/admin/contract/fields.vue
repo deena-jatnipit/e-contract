@@ -21,7 +21,7 @@
                 <th style="width: 10px">#</th>
                 <th>Field Name</th>
                 <th>Field Label</th>
-                <th style="width: 100px">Field Type</th>
+                <th style="width: 150px">Field Type</th>
                 <th class="text-center" style="width: 60px">Fillable</th>
                 <th class="text-center" style="width: 180px">Actions</th>
               </tr>
@@ -115,7 +115,6 @@
                     >
                       <option>Text</option>
                       <option>Credit number</option>
-                      <option>Date</option>
                       <option>Signature</option>
                       <option>Icon</option>
                     </select>
@@ -124,7 +123,11 @@
               </div>
 
               <div
-                v-if="currentField.type !== 'Icon' && !currentField.is_fillable"
+                v-if="
+                  currentField.type !== 'Icon' &&
+                  currentField.type !== 'Signature' &&
+                  !currentField.is_fillable
+                "
                 class="form-group"
               >
                 <label for="fieldLabel">
@@ -141,22 +144,29 @@
               </div>
 
               <div v-if="currentField.type === 'Icon'" class="form-group">
-                <label for="fieldIcon">Icon Class</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="fieldIcon"
-                  v-model="currentField.icon"
-                  placeholder="e.g., fas fa-check, fas fa-signature"
-                />
-                <small class="form-text text-muted">
-                  FontAwesome icon class (optional). Preview:
-                  <i
-                    v-if="currentField.icon"
-                    :class="currentField.icon"
-                    class="ml-1"
-                  ></i>
-                </small>
+                <label for="fieldIcon">Select Icon</label>
+                <div class="input-group">
+                  <select
+                    class="form-control"
+                    id="fieldIcon"
+                    v-model="currentField.icon"
+                    required
+                  >
+                    <option value="" hidden>Select an icon</option>
+                    <option
+                      v-for="icon in availableIcons"
+                      :key="icon.class"
+                      :value="icon.class"
+                    >
+                      {{ icon.name }}
+                    </option>
+                  </select>
+                  <div v-if="currentField.icon" class="input-group-append">
+                    <span class="input-group-text">
+                      <i :class="currentField.icon"></i>
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div class="row">
@@ -238,6 +248,24 @@ const loading = ref(false);
 const errorMessage = ref(null);
 const isEditing = ref(false);
 
+const availableIcons = ref([
+  { name: "Signature", class: "fas fa-signature" },
+  { name: "Check Mark", class: "fas fa-check" },
+  { name: "Stamp", class: "fas fa-stamp" },
+  { name: "Certificate", class: "fas fa-certificate" },
+  { name: "File", class: "fas fa-file-alt" },
+  { name: "User", class: "fas fa-user" },
+  { name: "Calendar", class: "fas fa-calendar" },
+  { name: "Clock", class: "fas fa-clock" },
+  { name: "Building", class: "fas fa-building" },
+  { name: "Company", class: "fas fa-landmark" },
+  { name: "Phone", class: "fas fa-phone" },
+  { name: "Email", class: "fas fa-envelope" },
+  { name: "Location", class: "fas fa-map-marker-alt" },
+  { name: "Document", class: "fas fa-file-contract" },
+  { name: "Money", class: "fas fa-money-bill" },
+]);
+
 const currentField = ref({
   id: null,
   name: "",
@@ -303,7 +331,12 @@ async function saveField() {
   errorMessage.value = null;
 
   // Validate required label for non-fillable fields
-  if (!currentField.value.is_fillable && !currentField.value.label.trim()) {
+  if (
+    !currentField.value.is_fillable &&
+    currentField.value.type !== "Signature" &&
+    currentField.value.type !== "Icon" &&
+    !currentField.value.label.trim()
+  ) {
     errorMessage.value = "Label is required for non-fillable fields";
     loading.value = false;
     return;
@@ -332,7 +365,11 @@ async function saveField() {
     let error;
     const fieldData = {
       name: currentField.value.name,
-      label: currentField.value.label,
+      label:
+        currentField.value.type === "Signature" ||
+        currentField.value.type === "Icon"
+          ? ""
+          : currentField.value.label,
       type: currentField.value.type,
       icon: currentField.value.icon || null,
       default_width: currentField.value.default_width,
@@ -388,8 +425,32 @@ async function deleteField(fieldId) {
 onMounted(() => {
   getFields();
 
-  $("#customerProfileModal").on("hide.bs.modal", function () {
+  $("#addFieldModal").on("hide.bs.modal", function () {
     resetForm();
   });
 });
+
+watch(
+  () => currentField.value.type,
+  (newType) => {
+    if (newType === "Signature" || newType === "Icon") {
+      currentField.value.label = "";
+    }
+  }
+);
 </script>
+
+<style scoped>
+.input-group-text {
+  min-width: 60px;
+  justify-content: center;
+}
+
+.input-group-text i {
+  font-size: 1.1em;
+}
+
+select.form-control {
+  height: calc(2.25rem + 2px);
+}
+</style>

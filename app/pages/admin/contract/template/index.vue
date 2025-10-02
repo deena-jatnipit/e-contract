@@ -26,7 +26,7 @@
                 <td>{{ index + 1 }}.</td>
                 <td>{{ template.name }}</td>
                 <td>{{ template.contracts.name }}</td>
-                <td>
+                <td style="width: 650px">
                   <div class="d-flex flex-wrap gap-1">
                     <!-- Display grouped fields -->
                     <template
