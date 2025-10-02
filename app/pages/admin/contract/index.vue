@@ -283,8 +283,8 @@ async function deleteContract(contractId) {
   }
 }
 
-onMounted(() => {
-  getContracts();
+onMounted(async () => {
+  await getContracts();
 
   $("#addContractModal").on("hide.bs.modal", function () {
     resetForm();

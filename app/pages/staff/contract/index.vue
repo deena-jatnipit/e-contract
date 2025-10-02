@@ -74,8 +74,8 @@ async function getContracts() {
   }
 }
 
-onMounted(() => {
-  getContracts();
+onMounted(async () => {
+  await getContracts();
 });
 </script>
 

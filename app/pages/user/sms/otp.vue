@@ -413,8 +413,8 @@ async function handleVerifyOtp() {
   }
 }
 
-onMounted(() => {
-  fetchDocumentById();
+onMounted(async () => {
+  await fetchDocumentById();
 });
 
 onBeforeUnmount(() => {

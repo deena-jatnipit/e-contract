@@ -331,8 +331,8 @@ function extractFilePathFromUrl(url) {
   return null;
 }
 
-onMounted(() => {
-  getTemplates();
+onMounted(async () => {
+  await getTemplates();
 });
 </script>
 

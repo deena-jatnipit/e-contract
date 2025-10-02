@@ -377,9 +377,9 @@ async function deleteProfile(profileId) {
   }
 }
 
-onMounted(() => {
-  getCustomers();
-  getCustomerProfiles();
+onMounted(async () => {
+  await getCustomers();
+  await getCustomerProfiles();
 
   $("#customerProfileModal").on("hide.bs.modal", function () {
     resetForm();

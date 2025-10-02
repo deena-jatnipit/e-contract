@@ -54,8 +54,8 @@ function addField(field) {
   emit("field-added", field);
 }
 
-onMounted(() => {
-  fetchFields();
+onMounted(async () => {
+  await fetchFields();
 });
 </script>
 
