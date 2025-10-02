@@ -421,8 +421,10 @@ async function deleteField(fieldId) {
   }
 }
 
-onMounted(() => {
-  getFields();
+onMounted(async () => {
+  await getFields();
+
+  await nextTick();
 
   $("#addFieldModal").on("hide.bs.modal", function () {
     resetForm();
