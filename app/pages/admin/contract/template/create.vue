@@ -127,7 +127,6 @@
 <script setup>
 const supabase = useSupabaseClient();
 const router = useRouter();
-import { validateTemplateNameFormat } from "~/utils/validators";
 const hasChanges = ref(false);
 const isSaving = ref(false);
 
@@ -347,7 +346,7 @@ watch(
 );
 
 onBeforeRouteLeave((to, from, next) => {
-  if (!hasChanges.value || isSaving.value) {
+  if (isSaving.value || !hasChanges.value) {
     next();
     return;
   }

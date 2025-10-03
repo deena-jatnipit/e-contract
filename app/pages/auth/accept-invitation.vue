@@ -134,7 +134,6 @@ const userEmail = ref("");
 const password = ref("");
 const confirmPassword = ref("");
 
-// Parse URL hash parameters
 function parseHashParams() {
   const hash = window.location.hash.substring(1); // Remove the # symbol
   const params = new URLSearchParams(hash);
@@ -147,15 +146,11 @@ function parseHashParams() {
   };
 }
 
-// Check invitation validity and get user info
 async function verifyInvitation() {
   try {
-    // First, try to parse hash parameters
     const hashParams = parseHashParams();
 
-    // Check if we have the required parameters
     if (!hashParams.access_token || hashParams.type !== "invite") {
-      // Fallback to query parameters for backward compatibility
       const token = route.query.token;
       const type = route.query.type;
 
@@ -165,7 +160,6 @@ async function verifyInvitation() {
         );
       }
 
-      // Handle legacy token verification
       const { data, error: verifyError } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: "invite",
@@ -179,8 +173,6 @@ async function verifyInvitation() {
         userEmail.value = data.user.email;
       }
     } else {
-      // Handle the hash-based invitation (modern Supabase approach)
-      // Set the session using the tokens from the hash
       const { data: sessionData, error: sessionError } =
         await supabase.auth.setSession({
           access_token: hashParams.access_token,
@@ -194,10 +186,8 @@ async function verifyInvitation() {
       if (sessionData.user) {
         userEmail.value = sessionData.user.email;
 
-        // Check if user already has a password set
-        // If they do, redirect them to login or dashboard
         if (sessionData.user.user_metadata?.password_set) {
-          await router.push("/dashboard");
+          await router.push("/admin/document");
           return;
         }
       } else {
@@ -239,11 +229,10 @@ async function handleSetPassword() {
   errorMessage.value = null;
 
   try {
-    // Update the user's password
     const { error: updateError } = await supabase.auth.updateUser({
       password: password.value,
       data: {
-        password_set: true, // Mark that password has been set
+        password_set: true,
       },
     });
 
@@ -253,7 +242,6 @@ async function handleSetPassword() {
 
     success.value = true;
 
-    // Optional: Auto-redirect after a few seconds
     setTimeout(() => {
       router.push("/auth/login");
     }, 3000);

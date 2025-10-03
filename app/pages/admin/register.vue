@@ -56,7 +56,6 @@
 
 <script setup>
 const config = useRuntimeConfig();
-const supabase = useSupabaseClient();
 
 const fullName = ref("");
 const role = ref("staff");
@@ -80,6 +79,7 @@ async function handleInviteUser() {
           role: role.value,
         },
         redirectTo: `${config.public.projectBaseUrl}/auth/accept-invitation`,
+        // redirectTo: `http://localhost:3000/auth/accept-invitation`,
       },
     });
 

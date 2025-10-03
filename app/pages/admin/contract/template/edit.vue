@@ -133,7 +133,6 @@
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient();
-import { validateTemplateNameFormat } from "~/utils/validators";
 
 const selectedTemplateId = computed(() => route.query.id || null);
 const hasChanges = ref(false);
@@ -882,7 +881,7 @@ function handleBeforeUnload(e) {
 }
 
 onBeforeRouteLeave((to, from, next) => {
-  if (!hasChanges.value || isSaving.value) {
+  if (isSaving.value || !hasChanges.value) {
     next();
     return;
   }

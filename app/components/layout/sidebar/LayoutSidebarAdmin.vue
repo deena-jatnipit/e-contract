@@ -56,7 +56,7 @@
               <li class="nav-item">
                 <NuxtLink to="/admin/contract" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Contract details</p>
+                  <p>Details</p>
                 </NuxtLink>
               </li>
               <li class="nav-item">
