@@ -129,6 +129,7 @@ const supabase = useSupabaseClient();
 const router = useRouter();
 import { validateTemplateNameFormat } from "~/utils/validators";
 const hasChanges = ref(false);
+const isSaving = ref(false);
 
 const newTemplateName = ref("");
 const templateNameError = ref("");
@@ -286,6 +287,7 @@ function handleTemplateSaved() {
   if (!validateTemplateName()) {
     return;
   }
+  isSaving.value = true;
   router.back();
 }
 
@@ -345,7 +347,7 @@ watch(
 );
 
 onBeforeRouteLeave((to, from, next) => {
-  if (!hasChanges.value) {
+  if (!hasChanges.value || isSaving.value) {
     next();
     return;
   }

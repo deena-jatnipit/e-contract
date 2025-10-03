@@ -137,6 +137,7 @@ import { validateTemplateNameFormat } from "~/utils/validators";
 
 const selectedTemplateId = computed(() => route.query.id || null);
 const hasChanges = ref(false);
+const isSaving = ref(false);
 const templateNameError = ref("");
 
 const currentTemplateName = ref("");
@@ -676,6 +677,7 @@ async function saveTemplate() {
       return;
     }
 
+    isSaving.value = true;
     router.back();
   } catch (error) {
     console.error("Save error:", error);
@@ -880,7 +882,7 @@ function handleBeforeUnload(e) {
 }
 
 onBeforeRouteLeave((to, from, next) => {
-  if (!hasChanges.value) {
+  if (!hasChanges.value || isSaving.value) {
     next();
     return;
   }
