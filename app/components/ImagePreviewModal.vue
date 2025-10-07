@@ -28,20 +28,20 @@
             ref="previewContainer"
             class="template-preview-area"
           >
-            <img v-if="previewImageUrl" :src="previewImageUrl" />
+            <img
+              v-if="previewImageUrl"
+              :src="previewImageUrl"
+              ref="previewImage"
+              @load="handleImageLoad"
+            />
 
-            <!-- render fields overlay -->
+            <!-- render fields overlay with scaled positions -->
             <div
               v-for="field in displayFields"
               :key="field.instanceId"
               class="placed-field-preview"
               :class="{ 'signing-mode': isSigningMode }"
-              :style="{
-                left: field.x + 'px',
-                top: field.y + 'px',
-                width: field.width + 'px',
-                height: field.height + 'px',
-              }"
+              :style="getScaledFieldStyle(field)"
             >
               <div
                 class="field-content-preview"
@@ -93,7 +93,6 @@ const props = defineProps({
     type: String,
     default: "previewModalLabel",
   },
-  // New props for handling input field values
   fieldValues: {
     type: Object,
     default: () => ({}),
@@ -102,7 +101,6 @@ const props = defineProps({
     type: String,
     default: null,
   },
-  // New prop to determine if we're in signing mode
   isSigningMode: {
     type: Boolean,
     default: false,
@@ -110,6 +108,41 @@ const props = defineProps({
 });
 
 const previewContainer = ref(null);
+const previewImage = ref(null);
+const imageScale = ref(1);
+const DESIGN_WIDTH = 800; // The width used when designing field positions
+
+// Calculate scale factor when image loads or window resizes
+function calculateScale() {
+  if (!previewImage.value || !previewContainer.value) return;
+
+  const displayedWidth = previewImage.value.clientWidth;
+  imageScale.value = displayedWidth / DESIGN_WIDTH;
+}
+
+function handleImageLoad() {
+  nextTick(() => {
+    calculateScale();
+  });
+}
+
+// Get scaled field style based on current image size
+function getScaledFieldStyle(field) {
+  const scale = imageScale.value;
+
+  // Calculate font size based on field height to maintain proportions
+  const baseFontSize = field.height * 0.4; // 40% of field height
+  const scaledFontSize = Math.max(8, baseFontSize * scale); // Minimum 8px
+
+  return {
+    left: `${field.x * scale}px`,
+    top: `${field.y * scale}px`,
+    width: `${field.width * scale}px`,
+    height: `${field.height * scale}px`,
+    fontSize: `${scaledFontSize}px`,
+    lineHeight: `${field.height * scale}px`, // Match line height to field height
+  };
+}
 
 // Helper function to get field value from fieldValues prop
 function getFieldValue(field) {
@@ -123,6 +156,27 @@ function getFieldValue(field) {
 function isSignatureField(field) {
   return field.type === "Signature" || field.id === "default-signature";
 }
+
+// Recalculate scale on window resize
+onMounted(() => {
+  window.addEventListener("resize", calculateScale);
+
+  // Also recalculate when modal is shown
+  if (process.client) {
+    $(`#${props.modalId}`).on("shown.bs.modal", () => {
+      nextTick(() => {
+        calculateScale();
+      });
+    });
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", calculateScale);
+  if (process.client) {
+    $(`#${props.modalId}`).off("shown.bs.modal");
+  }
+});
 </script>
 
 <style scoped>
@@ -157,6 +211,7 @@ function isSignatureField(field) {
   background-color: rgba(255, 255, 255, 0.3);
   border: 1px solid #ddd;
   pointer-events: none;
+  transition: all 0.2s ease; /* Smooth transition during scaling */
 }
 
 /* Signing mode styling - make fields invisible/transparent */
@@ -186,12 +241,12 @@ function isSignatureField(field) {
 .field-label-preview {
   font-weight: bold;
   margin-left: 8px;
-  font-size: 0.75rem;
+  font-size: 1em; /* Will be scaled by parent */
 }
 
 .field-value-preview {
   font-weight: bold;
-  font-size: 0.75rem;
+  font-size: 1em; /* Will be scaled by parent */
   color: #000;
   text-align: center;
   word-break: break-word;
@@ -201,30 +256,9 @@ function isSignatureField(field) {
 .signature-preview-img {
   width: 100%;
   height: 100%;
-  object-fit: fill; /* This will stretch to exact container size */
+  object-fit: fill;
   pointer-events: none;
   display: block;
-}
-
-@media (max-width: 820px) {
-  #preview-container {
-    width: 100% !important;
-    margin: 0 !important;
-  }
-
-  #preview-container img {
-    width: 100% !important;
-  }
-}
-
-#preview-container {
-  background-image:
-    linear-gradient(45deg, #eee 25%, transparent 25%),
-    linear-gradient(-45deg, #eee 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #eee 75%),
-    linear-gradient(-45deg, transparent 75%, #eee 75%);
-  background-size: 20px 20px;
-  min-height: 400px;
 }
 
 .template-preview-area {
@@ -234,8 +268,7 @@ function isSignatureField(field) {
   user-select: none;
   margin-left: auto;
   margin-right: auto;
-
-  width: 55vw;
+  width: 100%;
   max-width: 800px;
 }
 
@@ -244,5 +277,28 @@ function isSignatureField(field) {
   height: auto;
   display: block;
   pointer-events: none;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 820px) {
+  .template-preview-area {
+    max-width: 100%;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  #preview-container {
+    width: 100% !important;
+    margin: 0 !important;
+  }
+
+  #preview-container img {
+    width: 100% !important;
+  }
+
+  .placed-field-preview {
+    /* Ensure fields scale smoothly on mobile */
+    transform-origin: top left;
+  }
 }
 </style>
