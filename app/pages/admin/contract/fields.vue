@@ -22,7 +22,7 @@
                 <th>Field Name</th>
                 <th>Field Label</th>
                 <th style="width: 150px">Field Type</th>
-                <th class="text-center" style="width: 60px">Fillable</th>
+                <th class="text-center" style="width: 100px">User Input</th>
                 <th class="text-center" style="width: 180px">Actions</th>
               </tr>
             </thead>
@@ -200,7 +200,14 @@
                 </div>
               </div>
 
-              <div class="form-group">
+              <!-- Only show User Input checkbox for Text type -->
+              <div
+                v-if="
+                  currentField.type === 'Text' ||
+                  currentField.type === 'Credit number'
+                "
+                class="form-group"
+              >
                 <div class="form-check">
                   <input
                     type="checkbox"
@@ -436,6 +443,11 @@ watch(
   (newType) => {
     if (newType === "Signature" || newType === "Icon") {
       currentField.value.label = "";
+    }
+
+    // Reset is_fillable when changing away from Text type
+    if (newType !== "Text") {
+      currentField.value.is_fillable = false;
     }
   }
 );
