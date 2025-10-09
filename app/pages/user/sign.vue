@@ -245,25 +245,30 @@ const defaultFields = [
   },
 ];
 
-// Group fields for easier rendering
 const groupedFillableFields = computed(() => {
-  const groups = {};
+  const groupsMap = {};
   const singles = [];
   fillableFields.value.forEach((f) => {
     if (f.isGrouped && f.groupId) {
-      if (!groups[f.groupId]) groups[f.groupId] = { ...f, fields: [] };
-      groups[f.groupId].fields.push(f);
+      if (!groupsMap[f.groupId])
+        groupsMap[f.groupId] = {
+          groupId: f.groupId,
+          label: f.label || f.name || "",
+          fields: [],
+        };
+      groupsMap[f.groupId].fields.push(f);
     } else {
       singles.push(f);
     }
   });
-  Object.values(groups).forEach((g) =>
-    g.fields.sort((a, b) => (a.groupPosition || 0) - (b.groupPosition || 0))
-  );
-  return { groups: Object.values(groups), singleFields: singles };
+  const groups = Object.values(groupsMap).map((g) => {
+    g.fields.sort((a, b) => (a.groupPosition || 0) - (b.groupPosition || 0));
+    g.groupSize = g.fields.length;
+    return g;
+  });
+  return { groups, singleFields: singles };
 });
 
-// Merge placed fields with definitions for preview
 const previewDisplayFields = computed(() => {
   const placed = Array.isArray(template.value?.placed_fields_data)
     ? template.value.placed_fields_data
@@ -291,6 +296,9 @@ const previewDisplayFields = computed(() => {
 });
 
 function openPreviewModal() {
+  if (signaturePadInstance && !signaturePadInstance.isEmpty()) {
+    updateSignaturePreview();
+  }
   $("#templatePreviewModal").modal("show");
 }
 
@@ -417,9 +425,9 @@ async function setupSignaturePad() {
   signaturePadInstance = new SignaturePadClass(canvas, {
     penColor: "rgb(0, 98, 255)",
     maxWidth: 1.5,
-  });
-  signaturePadInstance.addEventListener("endStroke", () => {
-    if (!signaturePadInstance.isEmpty()) updateSignaturePreview();
+    onEnd: () => {
+      if (!signaturePadInstance.isEmpty()) updateSignaturePreview();
+    },
   });
 }
 
@@ -441,7 +449,6 @@ function updateSignaturePreview() {
 
 async function generateCompositeImage() {
   try {
-    // Use the composite image as the base
     const bgImg = new window.Image();
     bgImg.crossOrigin = "anonymous";
     await new Promise((res, rej) => {
@@ -457,70 +464,61 @@ async function generateCompositeImage() {
     ctx.drawImage(bgImg, 0, 0);
 
     const displayWidth = 800;
-    const actualWidth = bgImg.naturalWidth; // Actual image width (750px)
+    const naturalWidth = bgImg.naturalWidth;
+    const scaleRatio = naturalWidth / displayWidth;
 
-    // Calculate scaling factor to convert from display coordinates to actual image coordinates
-    const scaleRatio = actualWidth / displayWidth;
-
-    // Process all fillable fields
+    // collect all fields
     const allFields = [
       ...groupedFillableFields.value.singleFields,
-      ...groupedFillableFields.value.groups.flatMap((g) => g.fields),
+      ...groupedFillableFields.value.groups.flatMap((g) => g.fields || []),
     ];
 
     allFields.forEach((field) => {
-      const value = formFields[field.instanceId] || "";
-      if (value.trim()) {
-        // Scale coordinates from 800px display to actual image size
-        const actualX = field.x * scaleRatio;
-        const actualY = field.y * scaleRatio;
-        const actualWidth = field.width * scaleRatio;
-        const actualHeight = field.height * scaleRatio;
+      const value = (formFields[field.instanceId] || "").toString();
+      if (!value.trim()) return;
 
-        // Skip if field is outside canvas bounds
-        if (
-          actualX < 0 ||
-          actualY < 0 ||
-          actualX > bgImg.naturalWidth ||
-          actualY > bgImg.naturalHeight
-        ) {
-          return;
-        }
+      // use distinct variable names to avoid shadowing
+      const fieldActualX = Number(field.x) * scaleRatio;
+      const fieldActualY = Number(field.y) * scaleRatio;
+      const fieldActualW = Number(field.width) * scaleRatio;
+      const fieldActualH = Number(field.height) * scaleRatio;
 
-        ctx.save();
-
-        // Scale font size proportionally to match the coordinate scaling
-        const baseFontSize = Math.max(12, Math.min(24, actualHeight * 0.4));
-        ctx.font = `${baseFontSize}px Arial, sans-serif`;
-        ctx.fillStyle = "#000000";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-
-        // Draw text centered in the scaled field
-        const centerX = actualX + actualWidth / 2;
-        const centerY = actualY + actualHeight / 2;
-
-        // Handle text that's too long for the scaled field
-        const maxWidth = actualWidth * 0.9;
-        let displayText = value;
-
-        while (
-          ctx.measureText(displayText).width > maxWidth &&
-          displayText.length > 1
-        ) {
-          displayText = displayText.slice(0, -1);
-        }
-
-        if (displayText !== value && displayText.length > 3) {
-          displayText = displayText.slice(0, -3) + "...";
-        }
-
-        ctx.fillText(displayText, centerX, centerY);
-        ctx.restore();
+      if (
+        fieldActualX < 0 ||
+        fieldActualY < 0 ||
+        fieldActualX > canvas.width ||
+        fieldActualY > canvas.height
+      ) {
+        return;
       }
+
+      ctx.save();
+      const baseFontSize = Math.max(12, Math.min(24, fieldActualH * 0.4));
+      ctx.font = `${baseFontSize}px Arial, sans-serif`;
+      ctx.fillStyle = "#000";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const centerX = fieldActualX + fieldActualW / 2;
+      const centerY = fieldActualY + fieldActualH / 2;
+      const maxWidth = fieldActualW * 0.9;
+
+      let displayText = value;
+      // simple truncation with ellipsis
+      while (
+        ctx.measureText(displayText).width > maxWidth &&
+        displayText.length > 1
+      ) {
+        displayText = displayText.slice(0, -1);
+      }
+      if (displayText !== value && displayText.length > 3) {
+        displayText = displayText.slice(0, -3) + "...";
+      }
+      ctx.fillText(displayText, centerX, centerY, maxWidth);
+      ctx.restore();
     });
 
-    // Handle signature field
+    // signature handling (unchanged logic but variable names)
     if (signatureField.value && signaturePreview.value) {
       const sigImg = new window.Image();
       sigImg.crossOrigin = "anonymous";
@@ -530,24 +528,14 @@ async function generateCompositeImage() {
         sigImg.src = signaturePreview.value;
       });
 
-      // Scale signature field coordinates
-      const actualSigX = signatureField.value.x * scaleRatio;
-      const actualSigY = signatureField.value.y * scaleRatio;
-      const actualSigWidth = signatureField.value.width * scaleRatio;
-      const actualSigHeight = signatureField.value.height * scaleRatio;
+      const sigX = signatureField.value.x * scaleRatio;
+      const sigY = signatureField.value.y * scaleRatio;
+      const sigW = signatureField.value.width * scaleRatio;
+      const sigH = signatureField.value.height * scaleRatio;
 
-      // Calculate signature scaling to fit within the scaled field
-      const sigScale = Math.min(
-        actualSigWidth / sigImg.width,
-        actualSigHeight / sigImg.height,
-        1
-      );
-
-      // Center signature within the scaled field
-      const sigDrawX =
-        actualSigX + (actualSigWidth - sigImg.width * sigScale) / 2;
-      const sigDrawY =
-        actualSigY + (actualSigHeight - sigImg.height * sigScale) / 2;
+      const sigScale = Math.min(sigW / sigImg.width, sigH / sigImg.height, 1);
+      const sigDrawX = sigX + (sigW - sigImg.width * sigScale) / 2;
+      const sigDrawY = sigY + (sigH - sigImg.height * sigScale) / 2;
 
       ctx.drawImage(
         sigImg,
@@ -828,6 +816,17 @@ onMounted(() => {
   };
   window.addEventListener("resize", handleResize);
   onUnmounted(() => window.removeEventListener("resize", handleResize));
+});
+
+watch(signaturePreview, (newValue) => {
+  if (newValue) {
+    nextTick(() => {
+      const modal = $("#templatePreviewModal");
+      if (modal.is(":visible")) {
+        modal.modal("handleUpdate");
+      }
+    });
+  }
 });
 </script>
 <style scoped>
