@@ -56,6 +56,7 @@
                       width: '100%',
                       height: '100%',
                       objectFit: 'contain',
+                      border: 'blue solid 1px',
                     }"
                     alt="Signature"
                   />

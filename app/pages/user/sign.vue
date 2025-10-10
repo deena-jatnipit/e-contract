@@ -651,6 +651,7 @@ function cropSignature(canvas) {
     minY = canvas.height,
     maxX = 0,
     maxY = 0;
+
   for (let y = 0; y < canvas.height; y++)
     for (let x = 0; x < canvas.width; x++)
       if (data[(y * canvas.width + x) * 4 + 3] > 0) {
@@ -659,12 +660,16 @@ function cropSignature(canvas) {
         maxX = Math.max(maxX, x);
         maxY = Math.max(maxY, y);
       }
+
   if (minX >= canvas.width || minY >= canvas.height) return null;
-  const pad = 10;
+
+  const pad = 100;
+
   minX = Math.max(0, minX - pad);
   minY = Math.max(0, minY - pad);
   maxX = Math.min(canvas.width, maxX + pad);
   maxY = Math.min(canvas.height, maxY + pad);
+
   const croppedCanvas = document.createElement("canvas");
   croppedCanvas.width = maxX - minX;
   croppedCanvas.height = maxY - minY;
