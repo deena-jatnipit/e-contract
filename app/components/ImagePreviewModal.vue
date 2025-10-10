@@ -47,7 +47,6 @@
                 class="field-content-preview"
                 :class="{ 'signing-mode': isSigningMode }"
               >
-                <!-- Show filled value if available, otherwise show field info -->
                 <template v-if="isSignatureField(field) && signatureImageUrl">
                   <img
                     :src="signatureImageUrl"
@@ -56,7 +55,6 @@
                       width: '100%',
                       height: '100%',
                       objectFit: 'contain',
-                      border: 'blue solid 1px',
                     }"
                     alt="Signature"
                   />
