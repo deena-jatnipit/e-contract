@@ -11,7 +11,6 @@ export default defineEventHandler(async (event) => {
 
   const API_URL = "https://api-v2.thaibulksms.com/sms";
   const API_AUTH = `Basic ${config.tbsAuth}`;
-  // const API_AUTH = `Basic`;
 
   const params = new URLSearchParams();
   params.set("msisdn", msisdn);
