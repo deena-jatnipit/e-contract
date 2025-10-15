@@ -9,50 +9,17 @@
       <div class="spinner-border text-success" role="status"></div>
     </div>
 
-    <!-- Template Not Found -->
-    <div
+    <!-- Error State -->
+    <SigningErrorDisplay
       v-else-if="
         !documentData ||
         errorMessage ||
         !token ||
         documentData.status === 'signed'
       "
-      class="min-vh-100 d-flex align-items-center justify-content-center bg-light"
-    >
-      <div class="container">
-        <div class="row justify-content-center">
-          <div class="col-md-6 col-lg-5">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body text-center p-5">
-                <!-- Error Icon -->
-                <div class="mb-4">
-                  <div
-                    class="error-icon-wrapper d-inline-flex align-items-center justify-content-center rounded-circle bg-danger bg-opacity-10 p-3"
-                  >
-                    <i class="fas fa-exclamation-triangle text-danger fs-1"></i>
-                  </div>
-                </div>
-
-                <!-- Error Title -->
-                <h3 class="fw-bold text-dark mb-3">
-                  {{ !token ? "Access Token Missing" : "Document Not Found" }}
-                </h3>
-
-                <!-- Error Message -->
-                <p class="text-muted mb-4 lh-base">
-                  {{
-                    errorMessage ||
-                    (!token
-                      ? "The requested token could not be found. Please check your URL and try again."
-                      : "The requested document could not be found or have been signed.")
-                  }}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      :token="token"
+      :error-message="errorMessage"
+    />
 
     <!-- Main Content -->
     <div v-else class="pb-5">
@@ -67,128 +34,27 @@
       </div>
 
       <form @submit.prevent="handleSubmit" class="px-3">
-        <!-- Input Form (only show if there are fillable fields) -->
-        <div
-          v-if="
-            groupedFillableFields.singleFields.length > 0 ||
-            groupedFillableFields.groups.length > 0
-          "
-          class="card mb-4"
-        >
-          <div class="card-header bg-light">
-            <h2 class="h6 mb-0">
-              <i class="fas fa-edit me-2"></i>Fill Required Information
-            </h2>
-          </div>
-          <div class="card-body">
-            <!-- Single Fields -->
-            <div
-              v-for="field in groupedFillableFields.singleFields"
-              :key="field.instanceId"
-              class="mb-3"
-            >
-              <label :for="field.instanceId" class="form-label">
-                {{ field.label || field.name }}
-                <span class="text-danger">*</span>
-              </label>
-              <input
-                :id="field.instanceId"
-                v-model="formFields[field.instanceId]"
-                type="text"
-                class="form-control form-control-lg"
-                :placeholder="`Enter ${field.label || field.name}`"
-                required
-              />
-            </div>
+        <!-- Form Fields Component -->
+        <SigningFormFields
+          :grouped-fillable-fields="groupedFillableFields"
+          :form-fields="formFields"
+          @grouped-field-input="handleGroupedFieldInput"
+        />
 
-            <!-- Grouped Fields -->
-            <div
-              v-for="group in groupedFillableFields.groups"
-              :key="group.groupId"
-              class="mb-3"
-            >
-              <label :for="'group_' + group.groupId" class="form-label">
-                {{ group.label || group.name }}
-                <span class="text-danger">*</span>
-                <small class="text-muted ms-1"
-                  >({{ group.groupSize }} characters)</small
-                >
-              </label>
-              <input
-                :id="'group_' + group.groupId"
-                :value="getGroupedFieldValue(group.groupId)"
-                @input="
-                  handleGroupedFieldInput(group.groupId, $event.target.value)
-                "
-                type="text"
-                class="form-control form-control-lg"
-                :placeholder="`Enter ${group.groupSize} characters for ${group.label || group.name}`"
-                :maxlength="group.groupSize"
-                required
-              />
-            </div>
-          </div>
-        </div>
+        <!-- Signature Pad Component -->
+        <SigningSignaturePad
+          ref="signaturePadRef"
+          :signature-field="signatureField"
+          @signature-update="handleSignatureUpdate"
+          @signature-clear="handleSignatureClear"
+        />
 
-        <!-- Signature Pad -->
-        <div v-if="signatureField" class="card mb-4">
-          <div class="card-header bg-light">
-            <h2 class="h6 mb-0">
-              <i class="fas fa-signature me-2"></i>Your Signature
-            </h2>
-          </div>
-          <div class="card-body">
-            <p class="text-muted small mb-3">Please sign in the box below:</p>
-
-            <div
-              ref="signaturePadContainer"
-              class="border border-2 border-success rounded position-relative bg-white"
-              style="height: 200px; width: 100%"
-            >
-              <canvas
-                ref="signaturePad"
-                class="w-100 h-100"
-                style="touch-action: none"
-              ></canvas>
-            </div>
-
-            <div class="d-flex gap-2 mt-3">
-              <button
-                type="button"
-                @click="clearSignature"
-                class="btn btn-outline-secondary flex-fill"
-              >
-                <i class="fas fa-eraser me-1"></i>Clear
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-6">
-            <button
-              type="button"
-              class="btn btn-outline-light btn-lg w-100 d-flex align-items-center justify-content-center"
-              @click="openPreviewModal"
-            >
-              <i class="fas fa-eye me-1"></i>Preview
-            </button>
-          </div>
-          <div class="col-6">
-            <button
-              type="submit"
-              class="btn btn-success btn-lg w-100 d-flex align-items-center justify-content-center"
-            >
-              <span
-                v-if="submitting"
-                class="spinner-border spinner-border-sm me-2"
-                role="status"
-              ></span>
-              <i v-else class="fas fa-check me-2"></i>
-              {{ submitting ? "Saving..." : "Complete Signing" }}
-            </button>
-          </div>
-        </div>
+        <!-- Action Buttons Component -->
+        <SigningActionButtons
+          :is-loading="loading"
+          :is-submitting="submitting"
+          @preview="openPreviewModal"
+        />
       </form>
 
       <!-- Image Preview Modal -->
@@ -213,7 +79,8 @@ const router = useRouter();
 
 const documentId = route.query.documentId;
 const token = route.query.token;
-const templateId = ref(null);
+
+// State
 const loading = ref(true);
 const submitting = ref(false);
 const documentData = ref(null);
@@ -222,14 +89,13 @@ const fields = ref([]);
 const fillableFields = ref([]);
 const signatureField = ref(null);
 const formFields = reactive({});
-const signaturePad = ref(null);
-const signaturePadContainer = ref(null);
-const signaturePreview = ref(null);
 const errorMessage = ref("");
 
-let signaturePadInstance = null;
-let SignaturePadClass = null;
+// Component refs
+const signaturePadRef = ref(null);
+const signaturePreview = ref(null);
 
+// Default fields for template processing
 const defaultFields = [
   {
     id: "default-checkmark",
@@ -245,27 +111,32 @@ const defaultFields = [
   },
 ];
 
+// Computed properties
 const groupedFillableFields = computed(() => {
   const groupsMap = {};
   const singles = [];
+
   fillableFields.value.forEach((f) => {
     if (f.isGrouped && f.groupId) {
-      if (!groupsMap[f.groupId])
+      if (!groupsMap[f.groupId]) {
         groupsMap[f.groupId] = {
           groupId: f.groupId,
           label: f.label || f.name || "",
           fields: [],
         };
+      }
       groupsMap[f.groupId].fields.push(f);
     } else {
       singles.push(f);
     }
   });
+
   const groups = Object.values(groupsMap).map((g) => {
     g.fields.sort((a, b) => (a.groupPosition || 0) - (b.groupPosition || 0));
     g.groupSize = g.fields.length;
     return g;
   });
+
   return { groups, singleFields: singles };
 });
 
@@ -273,8 +144,10 @@ const previewDisplayFields = computed(() => {
   const placed = Array.isArray(template.value?.placed_fields_data)
     ? template.value.placed_fields_data
     : [];
+
   return placed.map((field) => {
     let merged = { ...field };
+
     if (typeof field.id === "string" && field.id.startsWith("default-")) {
       const def = defaultFields.find((df) => df.id === field.id);
       if (def) merged = { ...def, ...field, label: "" };
@@ -282,6 +155,7 @@ const previewDisplayFields = computed(() => {
       const dbField = fields.value.find((f) => f.id === field.id);
       if (dbField) merged = { ...dbField, ...field };
     }
+
     return {
       ...merged,
       instanceId:
@@ -295,43 +169,79 @@ const previewDisplayFields = computed(() => {
   });
 });
 
-function openPreviewModal() {
-  if (signaturePadInstance && !signaturePadInstance.isEmpty()) {
-    updateSignaturePreview();
+// Methods from useDocumentSigning
+const fetchDocument = async (documentId, token) => {
+  if (!documentId || !token) {
+    errorMessage.value = "Document ID and token are required";
+    return false;
   }
-  $("#templatePreviewModal").modal("show");
-}
 
-async function fetchTemplate() {
-  if (!templateId.value) {
-    errorMessage.value = "No template ID available";
-    loading.value = false;
-    return;
+  try {
+    const { data, error } = await supabase
+      .from("documents")
+      .select(
+        "id, template_id, customer_profile_id(customer_id, phone_number), provider, token, status, document_url"
+      )
+      .eq("id", documentId)
+      .single();
+
+    if (error || !data) {
+      errorMessage.value =
+        error?.code === "PGRST116"
+          ? "Document not found. Please check the URL and try again."
+          : "Failed to load document. Please try again.";
+      return false;
+    }
+
+    if (data.token !== token) {
+      errorMessage.value = "Invalid token. Access denied.";
+      return false;
+    }
+
+    documentData.value = data;
+    return true;
+  } catch (error) {
+    errorMessage.value = "An unexpected error occurred. Please try again.";
+    return false;
   }
+};
+
+const fetchTemplate = async (templateId) => {
+  if (!templateId) {
+    errorMessage.value = "No template ID available";
+    return false;
+  }
+
   loading.value = true;
   errorMessage.value = "";
+
   try {
     const [templateRes, fieldsRes] = await Promise.all([
       supabase
         .from("contract_templates")
         .select("*")
-        .eq("id", templateId.value)
+        .eq("id", templateId)
         .single(),
       supabase.from("contract_fields").select("*"),
     ]);
+
     if (templateRes.error) {
       errorMessage.value =
         templateRes.error.code === "PGRST116"
           ? "Template not found. Please check the URL and try again."
-          : `Failed to load template: ${templateRes.error.message}`;
+          : "Failed to load template. Please try again.";
       template.value = null;
-      return;
+      return false;
     }
+
     fields.value = fieldsRes.data || [];
     template.value = templateRes.data;
+
+    // Process fillable fields
     const placed = Array.isArray(template.value.placed_fields_data)
       ? template.value.placed_fields_data
       : [];
+
     fillableFields.value = placed
       .map((f) => ({
         ...f,
@@ -343,6 +253,7 @@ async function fetchTemplate() {
         if (f.type === "Icon" || f.id === "default-checkmark") return false;
         if (f.type === "Signature" || f.id === "default-signature")
           return false;
+
         if (typeof f.id === "number") {
           const def = fields.value.find((df) => df.id === f.id);
           if (!def || def.is_fillable === false) return false;
@@ -352,273 +263,66 @@ async function fetchTemplate() {
             label: def.label || def.name,
           });
         }
+
         if (!f.label && !f.name) f.label = `Field ${f.id}`;
         else if (!f.label) f.label = f.name;
         return true;
       });
+
     signatureField.value = placed.find(
       (f) => f.type === "Signature" || f.id === "default-signature"
     );
+
+    // Initialize form fields
     fillableFields.value.forEach((f) => {
       formFields[f.instanceId] = "";
     });
+
+    return true;
   } catch (err) {
-    errorMessage.value = err.message.includes("Failed to fetch")
-      ? "Network error. Please check your connection and try again."
-      : err.message.includes("JSON")
-        ? "Data format error. Please contact support."
-        : `Unexpected error: ${err.message}`;
+    errorMessage.value = "An unexpected error occurred. Please try again.";
     template.value = null;
+    return false;
   } finally {
     loading.value = false;
   }
-}
+};
 
-async function fetchDocument() {
-  if (!documentId || !token) {
-    errorMessage.value = "Document ID and token are required";
-    return false;
-  }
-  try {
-    const { data, error } = await supabase
-      .from("documents")
-      .select(
-        "id, template_id, customer_profile_id(customer_id, phone_number), provider, token, status, document_url"
-      )
-      .eq("id", documentId)
-      .single();
-    if (error || !data) {
-      errorMessage.value =
-        error?.code === "PGRST116"
-          ? "Document not found. Please check the URL and try again."
-          : `Failed to load document: ${error?.message || "Unknown error"}`;
-      return false;
-    }
-    if (data.token !== token) {
-      errorMessage.value = "Invalid token. Access denied.";
-      return false;
-    }
-    documentData.value = data;
-    templateId.value = data.template_id;
-    return true;
-  } catch (error) {
-    errorMessage.value = `Unexpected error: ${error.message}`;
-    return false;
-  }
-}
-
-async function setupSignaturePad() {
-  const canvas = signaturePad.value,
-    container = signaturePadContainer.value;
-  if (!canvas || !container) return;
-  if (!SignaturePadClass) {
-    try {
-      SignaturePadClass =
-        window.SignaturePad || (await import("signature_pad")).default;
-    } catch (error) {
-      return;
-    }
-  }
-  const rect = container.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  signaturePadInstance = new SignaturePadClass(canvas, {
-    penColor: "rgb(0, 98, 255)",
-    maxWidth: 1.5,
-    onEnd: () => {
-      if (!signaturePadInstance.isEmpty()) updateSignaturePreview();
-    },
-  });
-}
-
-function clearSignature() {
-  if (signaturePadInstance) {
-    signaturePadInstance.clear();
-    signaturePreview.value = null;
-  }
-}
-
-function updateSignaturePreview() {
-  if (signaturePadInstance && !signaturePadInstance.isEmpty()) {
-    const cropped = cropSignature(signaturePad.value);
-    signaturePreview.value = cropped
-      ? cropped.toDataURL("image/png")
-      : signaturePadInstance.toDataURL("image/png");
-  }
-}
-
-async function generateCompositeImage() {
-  try {
-    const bgImg = new window.Image();
-    bgImg.crossOrigin = "anonymous";
-    await new Promise((res, rej) => {
-      bgImg.onload = res;
-      bgImg.onerror = rej;
-      bgImg.src = template.value.composite_image_url;
-    });
-
-    const canvas = document.createElement("canvas");
-    canvas.width = bgImg.naturalWidth;
-    canvas.height = bgImg.naturalHeight;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(bgImg, 0, 0);
-
-    const displayWidth = 800;
-    const naturalWidth = bgImg.naturalWidth;
-    const scaleRatio = naturalWidth / displayWidth;
-
-    // collect all fields
-    const allFields = [
-      ...groupedFillableFields.value.singleFields,
-      ...groupedFillableFields.value.groups.flatMap((g) => g.fields || []),
-    ];
-
-    allFields.forEach((field) => {
-      const value = (formFields[field.instanceId] || "").toString();
-      if (!value.trim()) return;
-
-      // use distinct variable names to avoid shadowing
-      const fieldActualX = Number(field.x) * scaleRatio;
-      const fieldActualY = Number(field.y) * scaleRatio;
-      const fieldActualW = Number(field.width) * scaleRatio;
-      const fieldActualH = Number(field.height) * scaleRatio;
-
-      if (
-        fieldActualX < 0 ||
-        fieldActualY < 0 ||
-        fieldActualX > canvas.width ||
-        fieldActualY > canvas.height
-      ) {
-        return;
-      }
-
-      ctx.save();
-      const baseFontSize = Math.max(12, Math.min(24, fieldActualH * 0.4));
-      ctx.font = `${baseFontSize}px Arial, sans-serif`;
-      ctx.fillStyle = "#000";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-
-      const centerX = fieldActualX + fieldActualW / 2;
-      const centerY = fieldActualY + fieldActualH / 2;
-      const maxWidth = fieldActualW * 0.9;
-
-      let displayText = value;
-      // simple truncation with ellipsis
-      while (
-        ctx.measureText(displayText).width > maxWidth &&
-        displayText.length > 1
-      ) {
-        displayText = displayText.slice(0, -1);
-      }
-      if (displayText !== value && displayText.length > 3) {
-        displayText = displayText.slice(0, -3) + "...";
-      }
-      ctx.fillText(displayText, centerX, centerY, maxWidth);
-      ctx.restore();
-    });
-
-    // signature handling (unchanged logic but variable names)
-    if (signatureField.value && signaturePreview.value) {
-      const sigImg = new window.Image();
-      sigImg.crossOrigin = "anonymous";
-      await new Promise((res, rej) => {
-        sigImg.onload = res;
-        sigImg.onerror = rej;
-        sigImg.src = signaturePreview.value;
-      });
-
-      const sigX = signatureField.value.x * scaleRatio;
-      const sigY = signatureField.value.y * scaleRatio;
-      const sigW = signatureField.value.width * scaleRatio;
-      const sigH = signatureField.value.height * scaleRatio;
-
-      const sigScale = Math.min(sigW / sigImg.width, sigH / sigImg.height, 1);
-      const sigDrawX = sigX + (sigW - sigImg.width * sigScale) / 2;
-      const sigDrawY = sigY + (sigH - sigImg.height * sigScale) / 2;
-
-      ctx.drawImage(
-        sigImg,
-        sigDrawX,
-        sigDrawY,
-        sigImg.width * sigScale,
-        sigImg.height * sigScale
-      );
-    }
-
-    return new Promise((res) => canvas.toBlob(res, "image/png", 0.95));
-  } catch (error) {
-    console.error("Error generating composite image:", error);
-    throw error;
-  }
-}
-
-async function handleSubmit() {
-  if (
-    signatureField.value &&
-    (!signaturePadInstance || signaturePadInstance.isEmpty())
-  ) {
-    alert("Please provide your signature before submitting.");
-    return;
-  }
-  for (const f of groupedFillableFields.value.singleFields)
+const validateForm = () => {
+  // Validate single fields
+  for (const f of groupedFillableFields.value.singleFields) {
     if (!formFields[f.instanceId]?.trim()) {
-      alert(`Please fill in: ${f.label || f.name}`);
-      return;
+      return {
+        valid: false,
+        message: `Please fill in: ${f.label || f.name}`,
+      };
     }
-  for (const g of groupedFillableFields.value.groups)
-    if (
-      !getGroupedFieldValue(g.groupId) ||
-      getGroupedFieldValue(g.groupId).length !== g.groupSize
-    ) {
-      alert(
-        `Please fill in all ${g.groupSize} characters for: ${g.label || g.name}`
-      );
-      return;
-    }
-
-  submitting.value = true;
-  try {
-    const compositeBlob = await generateCompositeImage();
-    if (!compositeBlob) throw new Error("Failed to generate composite image");
-    const fileName = `${template.value.name.replace(/[^a-zA-Z0-9]/g, "_")}_signed_${Date.now()}.png`;
-    const filePath = `signed/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("template-images")
-      .upload(filePath, compositeBlob, { cacheControl: "3600", upsert: false });
-
-    if (uploadError) throw new Error("Upload failed: " + uploadError.message);
-
-    const { data: publicUrlData } = supabase.storage
-      .from("template-images")
-      .getPublicUrl(filePath);
-
-    const { data, error } = await supabase
-      .from("documents")
-      .update({
-        status: "signed",
-        document_url: publicUrlData.publicUrl,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", documentId)
-      .eq("token", token)
-      .select()
-      .single();
-
-    if (error) throw new Error("Database error: " + error.message);
-
-    await sendNotification(data.id, data.document_url);
-
-    router.push("/user/sign-success");
-  } catch (error) {
-    alert("Error signing document: " + error.message);
-  } finally {
-    submitting.value = false;
   }
-}
 
-function handleGroupedFieldInput(groupId, inputValue) {
+  // Validate grouped fields
+  for (const g of groupedFillableFields.value.groups) {
+    const value = getGroupedFieldValue(g.groupId);
+    if (!value || value.length !== g.groupSize) {
+      return {
+        valid: false,
+        message: `Please fill in all ${g.groupSize} characters for: ${g.label || g.name}`,
+      };
+    }
+  }
+
+  return { valid: true };
+};
+
+const getGroupedFieldValue = (groupId) => {
+  const group = groupedFillableFields.value.groups.find(
+    (g) => g.groupId === groupId
+  );
+  return group
+    ? group.fields.map((f) => formFields[f.instanceId] || "").join("")
+    : "";
+};
+
+const handleGroupedFieldInput = (groupId, inputValue) => {
   const group = groupedFillableFields.value.groups.find(
     (g) => g.groupId === groupId
   );
@@ -633,65 +337,110 @@ function handleGroupedFieldInput(groupId, inputValue) {
       formFields[group.fields[i].instanceId] = char || "";
     }
   });
-}
+};
 
-function getGroupedFieldValue(groupId) {
-  const group = groupedFillableFields.value.groups.find(
-    (g) => g.groupId === groupId
-  );
-  return group
-    ? group.fields.map((f) => formFields[f.instanceId] || "").join("")
-    : "";
-}
+// Methods from useImageGeneration
+const sanitizeInput = (input) => {
+  if (typeof input !== "string") return "";
 
-function cropSignature(canvas) {
-  const ctx = canvas.getContext("2d", { willReadFrequently: true }),
-    data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  let minX = canvas.width,
-    minY = canvas.height,
-    maxX = 0,
-    maxY = 0;
+  // Remove potentially dangerous characters
+  return input
+    .replace(/[<>]/g, "") // Remove angle brackets
+    .replace(/javascript:/gi, "") // Remove javascript: protocol
+    .replace(/on\w+=/gi, "") // Remove event handlers
+    .trim();
+};
 
-  for (let y = 0; y < canvas.height; y++)
-    for (let x = 0; x < canvas.width; x++)
-      if (data[(y * canvas.width + x) * 4 + 3] > 0) {
-        minX = Math.min(minX, x);
-        minY = Math.min(minY, y);
-        maxX = Math.max(maxX, x);
-        maxY = Math.max(maxY, y);
+// Import canvas operations composable
+const {
+  createCanvas,
+  loadImage,
+  drawBackgroundImage,
+  renderTextWithTruncation,
+  renderSignature,
+  canvasToBlob,
+  calculateFontSize,
+  isFieldInBounds,
+} = useCanvasOperations();
+
+const generateCompositeImage = async (
+  template,
+  formFields,
+  groupedFillableFields,
+  signatureField,
+  signaturePreview
+) => {
+  try {
+    // Load background image
+    const bgImg = await loadImage(template.composite_image_url);
+
+    // Create canvas with background image dimensions
+    const canvas = createCanvas(bgImg.naturalWidth, bgImg.naturalHeight);
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    drawBackgroundImage(ctx, bgImg, bgImg.naturalWidth, bgImg.naturalHeight);
+
+    const displayWidth = 800;
+    const naturalWidth = bgImg.naturalWidth;
+    const scaleRatio = naturalWidth / displayWidth;
+
+    // Collect all fields
+    const allFields = [
+      ...groupedFillableFields.singleFields,
+      ...groupedFillableFields.groups.flatMap((g) => g.fields || []),
+    ];
+
+    // Render text fields
+    allFields.forEach((field) => {
+      const value = sanitizeInput(formFields[field.instanceId] || "");
+      if (!value.trim()) return;
+
+      const fieldActualX = Number(field.x) * scaleRatio;
+      const fieldActualY = Number(field.y) * scaleRatio;
+      const fieldActualW = Number(field.width) * scaleRatio;
+      const fieldActualH = Number(field.height) * scaleRatio;
+
+      if (
+        !isFieldInBounds(
+          fieldActualX,
+          fieldActualY,
+          fieldActualW,
+          fieldActualH,
+          canvas.width,
+          canvas.height
+        )
+      ) {
+        return;
       }
 
-  if (minX >= canvas.width || minY >= canvas.height) return null;
+      const baseFontSize = Math.max(12, Math.min(24, fieldActualH * 0.4));
+      renderTextWithTruncation(
+        ctx,
+        value,
+        fieldActualX,
+        fieldActualY,
+        fieldActualW,
+        fieldActualH,
+        baseFontSize
+      );
+    });
 
-  const pad = 100;
+    // Render signature
+    if (signatureField && signaturePreview) {
+      await renderSignature(ctx, signatureField, signaturePreview, scaleRatio);
+    }
 
-  minX = Math.max(0, minX - pad);
-  minY = Math.max(0, minY - pad);
-  maxX = Math.min(canvas.width, maxX + pad);
-  maxY = Math.min(canvas.height, maxY + pad);
+    return await canvasToBlob(canvas, "image/png", 0.95);
+  } catch (error) {
+    console.error("Error generating composite image:", error);
+    throw new Error("Failed to generate document image");
+  }
+};
 
-  const croppedCanvas = document.createElement("canvas");
-  croppedCanvas.width = maxX - minX;
-  croppedCanvas.height = maxY - minY;
-  croppedCanvas
-    .getContext("2d")
-    .drawImage(
-      canvas,
-      minX,
-      minY,
-      croppedCanvas.width,
-      croppedCanvas.height,
-      0,
-      0,
-      croppedCanvas.width,
-      croppedCanvas.height
-    );
-  return croppedCanvas;
-}
-
-async function sendSms(msisdn) {
+// Methods from useNotifications
+const sendSms = async (msisdn) => {
   try {
-    const message = `เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว`;
+    const message =
+      "เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว";
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
@@ -706,14 +455,17 @@ async function sendSms(msisdn) {
     }
 
     console.log("SMS sent successfully");
+    return true;
   } catch (error) {
+    console.error("Failed to send SMS:", error);
     throw error;
   }
-}
+};
 
-async function sendLine(userId, documentUrl = null) {
+const sendLine = async (userId, documentUrl = null) => {
   try {
-    const textMessage = `เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว`;
+    const textMessage =
+      "เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว";
 
     const messages = [
       {
@@ -743,14 +495,16 @@ async function sendLine(userId, documentUrl = null) {
     }
 
     console.log("Line message sent successfully");
+    return true;
   } catch (error) {
+    console.error("Failed to send Line message:", error);
     throw error;
   }
-}
+};
 
-async function sendTelegram(documentId = null) {
+const sendTelegram = async (documentId) => {
   try {
-    const message = `เอกสาร ${documentId || documentId.value} ได้รับการเซ็นลายเซ็นเรียบร้อยแล้ว`;
+    const message = `เอกสาร ${documentId} ได้รับการเซ็นลายเซ็นเรียบร้อยแล้ว`;
 
     const response = await $fetch("/api/telegram/send-message", {
       method: "POST",
@@ -764,80 +518,178 @@ async function sendTelegram(documentId = null) {
     }
 
     console.log("Telegram message sent successfully");
+    return true;
   } catch (error) {
     console.error("Failed to send Telegram message:", error);
     throw error;
   }
-}
+};
 
-async function sendNotification(documentId, documentUrl) {
+const sendNotification = async (documentData, documentId, documentUrl) => {
+  const notifications = [];
+
   try {
-    if (documentData.value.provider === "line") {
-      await sendLine(
-        documentData.value.customer_profile_id.customer_id,
-        documentUrl
+    if (documentData.provider === "line") {
+      notifications.push(
+        sendLine(documentData.customer_profile_id.customer_id, documentUrl)
       );
     }
 
-    if (documentData.value.provider === "sms") {
-      await sendSms(documentData.value.customer_profile_id.phone_number);
+    if (documentData.provider === "sms") {
+      notifications.push(
+        sendSms(documentData.customer_profile_id.phone_number)
+      );
     }
 
-    await sendTelegram(documentId);
-  } catch (error) {
-    console.error("Error sending notification:", error);
-  }
-}
+    notifications.push(sendTelegram(documentId));
 
+    await Promise.allSettled(notifications);
+  } catch (error) {
+    console.error("Error sending notifications:", error);
+    // Don't throw error to prevent blocking the main flow
+  }
+};
+
+// Event handlers
+const handleSignatureUpdate = (signature) => {
+  signaturePreview.value = signature;
+};
+
+const handleSignatureClear = () => {
+  signaturePreview.value = null;
+};
+
+const openPreviewModal = () => {
+  if (signaturePadRef.value?.updateSignaturePreview) {
+    signaturePadRef.value.updateSignaturePreview();
+  }
+
+  // Use proper modal handling instead of jQuery
+  const modal = document.getElementById("templatePreviewModal");
+  if (modal) {
+    const bootstrap = window.bootstrap;
+    if (bootstrap) {
+      const modalInstance = new bootstrap.Modal(modal);
+      modalInstance.show();
+    }
+  }
+};
+
+const handleSubmit = async () => {
+  // Validate signature
+  if (signatureField.value && signaturePadRef.value?.isSignatureEmpty()) {
+    alert("Please provide your signature before submitting.");
+    return;
+  }
+
+  // Validate form fields
+  const validation = validateForm();
+  if (!validation.valid) {
+    alert(validation.message);
+    return;
+  }
+
+  submitting.value = true;
+
+  try {
+    // Generate composite image
+    const compositeBlob = await generateCompositeImage(
+      template.value,
+      formFields,
+      groupedFillableFields.value,
+      signatureField.value,
+      signaturePreview.value
+    );
+
+    if (!compositeBlob) {
+      throw new Error("Failed to generate composite image");
+    }
+
+    // Upload to storage
+    const fileName = `${template.value.name.replace(/[^a-zA-Z0-9]/g, "_")}_signed_${Date.now()}.png`;
+    const filePath = `signed/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("template-images")
+      .upload(filePath, compositeBlob, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      throw new Error("Upload failed: " + uploadError.message);
+    }
+
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage
+      .from("template-images")
+      .getPublicUrl(filePath);
+
+    // Update document status
+    const { data, error } = await supabase
+      .from("documents")
+      .update({
+        status: "signed",
+        document_url: publicUrlData.publicUrl,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", documentId)
+      .eq("token", token)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error("Database error: " + error.message);
+    }
+
+    // Send notifications
+    await sendNotification(documentData.value, data.id, data.document_url);
+
+    // Redirect to success page
+    router.push("/user/sign-success");
+  } catch (error) {
+    console.error("Error signing document:", error);
+    alert("Error signing document: " + error.message);
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// Lifecycle
 onMounted(async () => {
   if (!documentId || !token) {
     errorMessage.value = "Document ID and token are required in the URL";
     loading.value = false;
     return;
   }
-  if (!(await fetchDocument())) {
+
+  if (!(await fetchDocument(documentId, token))) {
     loading.value = false;
     return;
   }
-  await fetchTemplate();
-  await nextTick();
-  if (signatureField.value) await setupSignaturePad();
+
+  if (!(await fetchTemplate(documentData.value.template_id))) {
+    loading.value = false;
+    return;
+  }
 });
 
-onMounted(() => {
-  const handleResize = () => {
-    if (
-      signaturePadInstance &&
-      signaturePadContainer.value &&
-      signaturePad.value
-    ) {
-      const rect = signaturePadContainer.value.getBoundingClientRect();
-      signaturePad.value.width = rect.width;
-      signaturePad.value.height = rect.height;
-      signaturePadInstance.clear();
-      signaturePreview.value = null;
-    }
-  };
-  window.addEventListener("resize", handleResize);
-  onUnmounted(() => window.removeEventListener("resize", handleResize));
-});
-
+// Watch for signature preview changes
 watch(signaturePreview, (newValue) => {
   if (newValue) {
     nextTick(() => {
-      const modal = $("#templatePreviewModal");
-      if (modal.is(":visible")) {
-        modal.modal("handleUpdate");
+      const modal = document.getElementById("templatePreviewModal");
+      if (modal && modal.classList.contains("show")) {
+        // Trigger modal update if needed
+        const event = new Event("update");
+        modal.dispatchEvent(event);
       }
     });
   }
 });
 </script>
-<style scoped>
-#signaturePadContainer canvas {
-  cursor: crosshair;
-}
 
+<style scoped>
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .container-fluid {
@@ -873,5 +725,11 @@ watch(signaturePreview, (newValue) => {
 /* Field overlay styling */
 .bg-opacity-75 {
   background-color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* Loading spinner */
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
 }
 </style>

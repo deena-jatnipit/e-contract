@@ -285,40 +285,39 @@ function getImageBounds() {
   };
 }
 
+// Import canvas operations composable
+const {
+  createCanvas,
+  loadImage,
+  drawBackgroundImage,
+  renderCheckMark,
+  renderTextWithWrapping,
+  canvasToBlob,
+  calculateFontSize,
+  isFieldInBounds,
+} = useCanvasOperations();
+
 async function generateCompositeImage() {
   try {
     if (!props.previewImageUrl || !previewContainer.value) {
       throw new Error("No image or container available");
     }
 
-    // Create a temporary image to get natural dimensions
-    const tempImage = new Image();
-    tempImage.crossOrigin = "anonymous";
-    await new Promise((resolve, reject) => {
-      tempImage.onload = resolve;
-      tempImage.onerror = reject;
-      tempImage.src = props.previewImageUrl;
-    });
-
-    // Create canvas with original image dimensions
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
+    // Load background image
+    const tempImage = await loadImage(props.previewImageUrl);
     const originalWidth = tempImage.naturalWidth;
     const originalHeight = tempImage.naturalHeight;
 
-    canvas.width = originalWidth;
-    canvas.height = originalHeight;
-
-    // Draw the background image
-    ctx.drawImage(tempImage, 0, 0, originalWidth, originalHeight);
+    // Create canvas with original image dimensions
+    const canvas = createCanvas(originalWidth, originalHeight);
+    const ctx = canvas.getContext("2d");
+    drawBackgroundImage(ctx, tempImage, originalWidth, originalHeight);
 
     // Get the image bounds for scaling calculations
     const imageBounds = getImageBounds();
 
     // Calculate responsive font size based on image dimensions and field size
     const baseFontSize = Math.min(originalWidth, originalHeight) * 0.02; // 2% of smallest dimension
-    const minFontSize = 12;
-    const maxFontSize = 48;
 
     // Render each field onto the canvas
     for (const field of props.placedFields) {
@@ -330,93 +329,52 @@ async function generateCompositeImage() {
 
       // Skip if field is outside image bounds
       if (
-        scaledX < -scaledWidth ||
-        scaledY < -scaledHeight ||
-        scaledX > originalWidth ||
-        scaledY > originalHeight
+        !isFieldInBounds(
+          scaledX,
+          scaledY,
+          scaledWidth,
+          scaledHeight,
+          originalWidth,
+          originalHeight
+        )
       ) {
         continue;
       }
 
       // Calculate font size based on field dimensions
-      const fieldFontSize = Math.max(
-        minFontSize,
-        Math.min(
-          maxFontSize,
-          Math.min(scaledHeight * 0.6, scaledWidth * 0.1, baseFontSize)
-        )
+      const fieldFontSize = calculateFontSize(
+        scaledWidth,
+        scaledHeight,
+        baseFontSize
       );
 
       if (field.name === "Check Mark") {
-        // Render checkmark centered in the field
-        ctx.save();
-        const checkmarkSize = Math.max(fieldFontSize * 1.2, 16);
-        ctx.font = `normal ${checkmarkSize}px Arial, sans-serif`;
-        ctx.fillStyle = "#1a1a1a";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.shadowColor = "rgba(255, 255, 255, 0.8)";
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-        ctx.shadowBlur = 2;
-        const checkmarkX = scaledX + scaledWidth / 2;
-        const checkmarkY = scaledY + scaledHeight / 2;
-        ctx.fillText("✓", checkmarkX, checkmarkY);
-        ctx.restore();
+        renderCheckMark(
+          ctx,
+          scaledX,
+          scaledY,
+          scaledWidth,
+          scaledHeight,
+          fieldFontSize
+        );
       } else {
         const textToRender = field.label ? field.label.trim() : "";
         if (textToRender) {
-          ctx.save();
-          ctx.font = `normal ${fieldFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif`;
-          ctx.fillStyle = "#1a1a1a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-
-          // Center text in the field
-          const centerX = scaledX + scaledWidth / 2;
-          const centerY = scaledY + scaledHeight / 2;
-
-          // Handle text wrapping if text is too long for the field
-          const maxTextWidth = scaledWidth * 0.95;
-          const words = textToRender.split(" ");
-          let lines = [];
-          let line = "";
-
-          for (let i = 0; i < words.length; i++) {
-            const testLine = line + words[i] + " ";
-            const metrics = ctx.measureText(testLine);
-            const testWidth = metrics.width;
-            if (testWidth > maxTextWidth && i > 0) {
-              lines.push(line.trim());
-              line = words[i] + " ";
-            } else {
-              line = testLine;
-            }
-          }
-          if (line.trim()) lines.push(line.trim());
-
-          const lineHeight = fieldFontSize * 1.2;
-          const totalTextHeight = lines.length * lineHeight;
-          let startY = centerY - totalTextHeight / 2 + lineHeight / 2;
-
-          for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], centerX, startY + i * lineHeight);
-          }
-          ctx.restore();
+          renderTextWithWrapping(
+            ctx,
+            textToRender,
+            scaledX,
+            scaledY,
+            scaledWidth,
+            scaledHeight,
+            fieldFontSize,
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"
+          );
         }
       }
     }
 
-    // Convert canvas to blob
-    return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          resolve(blob);
-        },
-        "image/png",
-        0.95
-      );
-    });
+    return await canvasToBlob(canvas, "image/png", 0.95);
   } catch (error) {
     console.error("Error generating composite image:", error);
     return null;
