@@ -1,17 +1,19 @@
 <template>
   <div>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">All templates</h3>
+    <div class="card card-primary shadow-sm">
+      <div class="card-header bg-gradient-primary">
+        <h3 class="card-title text-white">
+          <i class="fas fa-file-alt mr-2"></i>All Templates
+        </h3>
         <div class="card-tools">
-          <button class="btn btn-primary btn-sm" @click="openCreate">
-            <i class="fas fa-plus"></i> Add New template
+          <button class="btn btn-light btn-sm px-4" @click="openCreate">
+            <i class="fas fa-plus mr-2"></i>Add New Template
           </button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
+          <table class="table custom-table">
             <thead>
               <tr>
                 <th style="width: 10px">#</th>
@@ -23,8 +25,10 @@
             </thead>
             <tbody>
               <tr v-for="(template, index) in templates" :key="template.id">
-                <td>{{ index + 1 }}.</td>
-                <td>{{ template.name }}</td>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td>
+                  <span class="font-weight-medium">{{ template.name }}</span>
+                </td>
                 <td>{{ template.contracts.name }}</td>
                 <td style="width: 650px">
                   <div class="d-flex flex-wrap gap-1">
@@ -57,27 +61,32 @@
                   </div>
                 </td>
                 <td class="text-center">
-                  <button
-                    class="btn btn-info btn-sm"
-                    @click="openPreview(template)"
-                    title="Preview Template"
-                  >
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button
-                    class="btn btn-warning btn-sm ml-1"
-                    @click="openEdit(template.id)"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm ml-1"
-                    @click="
-                      deleteTemplate(template.id, template.composite_image_url)
-                    "
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <div class="action-buttons">
+                    <button
+                      class="btn-icon text-info"
+                      @click="openPreview(template)"
+                      title="Preview Template"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button
+                      class="btn-icon text-warning"
+                      @click="openEdit(template.id)"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="btn-icon text-danger"
+                      @click="
+                        deleteTemplate(
+                          template.id,
+                          template.composite_image_url
+                        )
+                      "
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!templates || templates.length === 0">
@@ -337,21 +346,126 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Card Enhancement */
+.card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Table Enhancements */
+.custom-table {
+  margin-bottom: 0;
+  border-spacing: 0 0.5rem !important;
+  border-collapse: separate !important;
+}
+
+.custom-table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 1rem;
+}
+
+.custom-table td {
+  padding: 0.5rem;
+  vertical-align: middle;
+  background-color: #ffffff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.custom-table tbody tr:hover td {
+  background-color: #f8f9fa;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c9d0;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Badge Styles */
 .gap-1 {
   gap: 0.25rem;
 }
 
 .badge {
-  font-size: 0.75rem;
-  padding: 0.25em 0.5em;
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.badge-warning {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.badge-primary {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.badge-secondary {
+  background-color: #f5f5f5;
+  color: #757575;
 }
 
 .d-flex.flex-wrap {
   align-items: center;
 }
 
-.badge-secondary {
-  background-color: #6c757d;
-  color: white;
+/* Font Weight Helper */
+.font-weight-medium {
+  font-weight: 500;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
 }
 </style>

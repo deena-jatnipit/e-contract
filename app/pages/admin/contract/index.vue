@@ -401,7 +401,7 @@ onMounted(async () => {
 }
 
 .custom-table td {
-  padding: 1rem;
+  padding: 0.5rem;
   vertical-align: middle;
   background-color: #ffffff;
   border: none;

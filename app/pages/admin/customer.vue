@@ -1,21 +1,23 @@
 <template>
   <div>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Customer Profiles</h3>
+    <div class="card card-primary shadow-sm">
+      <div class="card-header bg-gradient-primary">
+        <h3 class="card-title text-white">
+          <i class="fas fa-users mr-2"></i>Customer Profiles
+        </h3>
         <div class="card-tools">
           <button
-            class="btn btn-primary btn-sm"
+            class="btn btn-light btn-sm px-4"
             data-toggle="modal"
             data-target="#customerProfileModal"
           >
-            <i class="fas fa-plus"></i> Add New Customer Profile
+            <i class="fas fa-plus mr-2"></i>Add New Customer Profile
           </button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
+          <table class="table custom-table">
             <thead>
               <tr>
                 <th style="width: 10px">#</th>
@@ -31,29 +33,40 @@
                 v-for="(profile, index) in customerProfiles"
                 :key="profile.id"
               >
-                <td>{{ index + 1 }}.</td>
-                <td>{{ profile.customer_id.display_name }}</td>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td>
+                  <span class="font-weight-medium">{{
+                    profile.customer_id.display_name
+                  }}</span>
+                </td>
                 <td>{{ profile.full_name }}</td>
                 <td>{{ profile.car_registration_number }}</td>
                 <td>{{ profile.phone_number }}</td>
                 <td class="text-center">
-                  <button
-                    class="btn btn-warning btn-sm"
-                    @click="openEditModal(profile)"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm ml-2"
-                    @click="deleteProfile(profile.id)"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <div class="action-buttons">
+                    <button
+                      class="btn-icon text-warning"
+                      @click="openEditModal(profile)"
+                      title="Edit Profile"
+                    >
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button
+                      class="btn-icon text-danger"
+                      @click="deleteProfile(profile.id)"
+                      title="Delete Profile"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!customerProfiles || customerProfiles.length === 0">
-                <td colspan="6" class="text-center">
-                  No customer profiles found.
+                <td colspan="6" class="text-center py-4">
+                  <div class="empty-state">
+                    <i class="fas fa-users fa-2x mb-2"></i>
+                    <p>No customer profiles found.</p>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -468,9 +481,133 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* Optional: Custom Select2 styling to match Bootstrap better */
+/* Card Enhancement */
+.card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Table Enhancements */
+.custom-table {
+  margin-bottom: 0;
+  border-spacing: 0 0.5rem !important;
+  border-collapse: separate !important;
+}
+
+.custom-table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 1rem;
+}
+
+.custom-table td {
+  padding: 0.5rem;
+  vertical-align: middle;
+  background-color: #ffffff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.custom-table tbody tr:hover td {
+  background-color: #f8f9fa;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c9d0;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Font Weight Helper */
+.font-weight-medium {
+  font-weight: 500;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Modal Enhancements */
+.modal-content {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Form Control Enhancement */
+.form-control {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+  border-color: #dee2e6;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Select2 Styling */
 .select2-container--bootstrap4 .select2-selection--single {
   height: calc(1.5em + 0.75rem + 2px) !important;
+  border-radius: 6px;
+  border-color: #dee2e6;
 }
 
 .select2-container--bootstrap4
@@ -495,5 +632,12 @@ onBeforeUnmount(() => {
 
 .select2-dropdown {
   z-index: 1060 !important;
+  border-color: #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.select2-container--bootstrap4.select2-container--focus .select2-selection {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
 }
 </style>
