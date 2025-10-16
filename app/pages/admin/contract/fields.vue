@@ -1,64 +1,87 @@
 <template>
   <div>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">All Fields</h3>
+    <div class="card card-primary shadow-sm">
+      <div class="card-header bg-gradient-primary">
+        <h3 class="card-title text-white">
+          <i class="fas fa-list-alt mr-2"></i>All Fields
+        </h3>
         <div class="card-tools">
           <button
-            class="btn btn-primary btn-sm"
+            class="btn btn-light btn-sm px-4"
             data-toggle="modal"
             data-target="#addFieldModal"
           >
-            <i class="fas fa-plus"></i> Add New Field
+            <i class="fas fa-plus mr-2"></i> Add New Field
           </button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
+          <table class="table custom-table">
             <thead>
               <tr>
-                <th style="width: 10px">#</th>
+                <th class="text-center" style="width: 50px">#</th>
                 <th>Field Name</th>
                 <th>Field Label</th>
-                <th style="width: 150px">Field Type</th>
+                <th class="text-center" style="width: 200px">Field Type</th>
                 <th class="text-center" style="width: 100px">User Input</th>
-                <th class="text-center" style="width: 180px">Actions</th>
+                <th class="text-center" style="width: 150px">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(field, index) in fields" :key="field.id">
-                <td>{{ index + 1 }}.</td>
-                <td>{{ field.name }}</td>
-                <td>{{ field.label }}</td>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
                 <td>
-                  <span class="badge bg-info">{{ field.type }}</span>
+                  <span class="font-weight-medium">{{ field.name }}</span>
+                </td>
+                <td>{{ field.label || "-" }}</td>
+                <td class="text-center">
+                  <span
+                    class="type-badge"
+                    :class="
+                      'type-' + field.type.toLowerCase().replace(' ', '-')
+                    "
+                  >
+                    <i class="fas" :class="getTypeIcon(field.type)"></i>
+                    {{ field.type }}
+                  </span>
                 </td>
                 <td class="text-center">
                   <span
-                    class="badge"
-                    :class="field.is_fillable ? 'bg-success' : 'bg-danger'"
+                    class="status-badge"
+                    :class="
+                      field.is_fillable ? 'status-active' : 'status-inactive'
+                    "
                   >
                     {{ field.is_fillable ? "Yes" : "No" }}
                   </span>
                 </td>
                 <td class="text-center">
-                  <button
-                    class="btn btn-warning btn-sm"
-                    @click="openEditModal(field)"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm ml-2"
-                    @click="deleteField(field.id)"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                  <div class="action-buttons">
+                    <button
+                      class="btn btn-icon"
+                      @click="openEditModal(field)"
+                      title="Edit"
+                    >
+                      <i class="fas fa-edit text-warning"></i>
+                    </button>
+                    <button
+                      class="btn btn-icon text-danger"
+                      @click="deleteField(field.id)"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!fields || fields.length === 0">
-                <td colspan="8" class="text-center">No fields found.</td>
+                <td colspan="6" class="text-center py-4">
+                  <div class="empty-state">
+                    <i class="fas fa-list-alt fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No fields found.</p>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -78,6 +101,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addFieldModalLabel">
+              <i class="fas fa-edit text-primary mr-2"></i>
               {{ isEditing ? "Edit Field" : "Add New Field" }}
             </h5>
             <button
@@ -90,25 +114,30 @@
             </button>
           </div>
           <form @submit.prevent="saveField">
-            <div class="modal-body">
+            <div class="modal-body p-4">
               <div class="row">
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="fieldName">Field Name</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-tag text-primary mr-1"></i>Field Name
+                    </label>
                     <input
                       type="text"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="fieldName"
                       v-model="currentField.name"
+                      placeholder="Enter field name"
                       required
                     />
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="fieldType">Field Type</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-cube text-primary mr-1"></i>Field Type
+                    </label>
                     <select
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="fieldType"
                       v-model="currentField.type"
                       required
@@ -272,6 +301,22 @@ const availableIcons = ref([
   { name: "Document", class: "fas fa-file-contract" },
   { name: "Money", class: "fas fa-money-bill" },
 ]);
+
+// Helper function to get icon for field type
+function getTypeIcon(type) {
+  switch (type) {
+    case "Text":
+      return "fa-font";
+    case "Credit number":
+      return "fa-credit-card";
+    case "Signature":
+      return "fa-signature";
+    case "Icon":
+      return "fa-icons";
+    default:
+      return "fa-cube";
+  }
+}
 
 const currentField = ref({
   id: null,
@@ -454,16 +499,202 @@ watch(
 </script>
 
 <style scoped>
+/* Card Enhancement */
+.card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Form Control Enhancement */
+.form-control-lg {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-control-lg:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Button Enhancement */
+.btn-lg {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.btn-lg:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.25);
+}
+
+/* Table Enhancements */
+.custom-table {
+  margin-bottom: 0;
+  border-spacing: 0 0.5rem !important;
+  border-collapse: separate !important;
+}
+
+.custom-table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 1rem;
+}
+
+.custom-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  background-color: #ffffff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.custom-table tbody tr:hover td {
+  background-color: #f8f9fa;
+}
+
+/* Type Badge */
+.type-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.type-text {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.type-credit-number {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.type-signature {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.type-icon {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-inactive {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c9d0;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Input Group */
 .input-group-text {
   min-width: 60px;
   justify-content: center;
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
 }
 
 .input-group-text i {
   font-size: 1.1em;
+  color: #495057;
 }
 
-select.form-control {
-  height: calc(2.25rem + 2px);
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Font Weight Helper */
+.font-weight-medium {
+  font-weight: 500;
+}
+
+/* Modal Enhancements */
+.modal-content {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
 }
 </style>

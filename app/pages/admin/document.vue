@@ -1,66 +1,108 @@
 <template>
   <div class="container-fluid">
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">Document Status</h3>
+    <div class="card card-primary shadow-sm">
+      <div class="card-header bg-gradient-primary">
+        <h3 class="card-title text-white">
+          <i class="fas fa-file-alt mr-2"></i>Document Status
+        </h3>
         <div class="card-tools">
           <button
-            class="btn btn-success btn-sm"
+            class="btn btn-light btn-sm px-4"
             data-toggle="modal"
             data-target="#sendLinkModal"
           >
-            <i class="fas fa-arrow-right"></i> Send Document Link
+            <i class="fas fa-paper-plane mr-2"></i> Send Document Link
           </button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
+          <table class="table custom-table">
             <thead>
               <tr>
-                <th style="width: 10px">#</th>
+                <th class="text-center" style="width: 50px">#</th>
                 <th>Template Name</th>
                 <th>Send to</th>
-                <th>Provider</th>
-                <th>Status</th>
-                <th class="text-center" style="width: 180px">Actions</th>
+                <th class="text-center" style="width: 100px">Provider</th>
+                <th class="text-center" style="width: 250px">Status</th>
+                <th class="text-center" style="width: 150px">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(document, index) in documents" :key="document.id">
-                <td>{{ index + 1 }}.</td>
-                <td>{{ document.contract_templates.name }}</td>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
                 <td>
-                  {{ document.customer_profile_id.customers.display_name }}
+                  <span class="font-weight-medium">{{
+                    document.contract_templates.name
+                  }}</span>
                 </td>
-                <td>{{ document.provider }}</td>
-                <td>{{ document.status }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-user-circle text-muted mr-2"></i>
+                    <span>{{
+                      document.customer_profile_id.customers.display_name
+                    }}</span>
+                  </div>
+                </td>
                 <td class="text-center">
-                  <button
-                    class="btn btn-info btn-sm"
-                    @click="previewDocument(document.document_url)"
-                    data-toggle="modal"
-                    data-target="#previewModal"
-                    :disabled="!document.document_url"
+                  <span
+                    class="provider-badge"
+                    :class="'provider-' + document.provider"
                   >
-                    <i class="fas fa-eye"></i>
-                  </button>
-                  <button
-                    class="btn btn-primary btn-sm ml-1"
-                    @click="downloadDocument(document.document_url)"
+                    <i
+                      :class="
+                        document.provider === 'line'
+                          ? 'fab fa-line'
+                          : 'fas fa-comment-dots'
+                      "
+                    ></i>
+                    {{ document.provider }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span
+                    class="status-badge"
+                    :class="'status-' + document.status"
                   >
-                    <i class="fas fa-download"></i>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm ml-1"
-                    @click="handleDeleteDocument(document.id)"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                    {{ document.status }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <div class="action-buttons">
+                    <button
+                      class="btn btn-icon"
+                      @click="previewDocument(document.document_url)"
+                      data-toggle="modal"
+                      data-target="#previewModal"
+                      :disabled="!document.document_url"
+                      title="Preview"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </button>
+                    <button
+                      class="btn btn-icon"
+                      @click="downloadDocument(document.document_url)"
+                      title="Download"
+                    >
+                      <i class="fas fa-download"></i>
+                    </button>
+                    <button
+                      class="btn btn-icon text-danger"
+                      @click="handleDeleteDocument(document.id)"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!documents || documents.length === 0">
-                <td colspan="6" class="text-center">No documents found.</td>
+                <td colspan="6" class="text-center py-4">
+                  <div class="empty-state">
+                    <i class="fas fa-file-alt fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No documents found.</p>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -220,7 +262,12 @@
                       :key="profile.id"
                       :value="profile"
                     >
-                      {{ getCustomerDisplayNameFromProfile(profile) }}
+                      {{
+                        getCustomerDisplayNameFromProfile(
+                          profile,
+                          customers.value
+                        )
+                      }}
                     </option>
                     <option
                       v-if="
@@ -284,7 +331,6 @@
 </template>
 
 <script setup>
-const supabase = useSupabaseClient();
 const PROJECT_BASE_URL = useRuntimeConfig().public.projectBaseUrl;
 
 const selectedTemplateId = ref(null);
@@ -348,207 +394,18 @@ function handlePhoneInput(event) {
   phoneNumber.value = value;
 }
 
-// Get customer display name from profile by looking up in customers table
-function getCustomerDisplayNameFromProfile(profile) {
-  const customer = customers.value.find((c) => c.id === profile.customer_id);
-  const customerName = customer
-    ? customer.display_name
-    : `Customer ID: ${profile.customer_id}`;
-
-  let displayParts = [customerName];
-
-  if (profile.full_name && profile.full_name !== customerName) {
-    displayParts.push(profile.full_name);
-  }
-
-  if (profile.car_registration_number) {
-    displayParts.push(profile.car_registration_number);
-  }
-
-  if (profile.phone_number) {
-    displayParts.push(profile.phone_number);
-  }
-
-  return displayParts.join(" | ");
-}
-
-async function fetchTemplates() {
-  try {
-    const { data, error } = await supabase
-      .from("contract_templates")
-      .select("*");
-
-    if (error) {
-      throw error;
-    } else {
-      templates.value = data || [];
-    }
-  } catch (error) {
-    console.error("Error fetching templates:", error);
-  }
-}
-
-async function fetchDocuments() {
-  try {
-    const { data, error } = await supabase
-      .from("documents")
-      .select(
-        "id, contract_templates(name), customer_profile_id(customer_id, customers(display_name)), provider, token, status, document_url"
-      );
-
-    if (error) {
-      throw error;
-    } else {
-      documents.value = data || [];
-    }
-  } catch (error) {
-    console.error("Error fetching documents:", error);
-  }
-}
-
-async function fetchCustomers() {
-  try {
-    const { data, error } = await supabase
-      .from("customers")
-      .select("id, display_name");
-
-    if (error) {
-      throw error;
-    } else {
-      customers.value = data || [];
-    }
-  } catch (error) {
-    console.error("Error fetching customers:", error);
-  }
-}
-
-async function fetchCustomerProfiles() {
-  try {
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .select("*");
-
-    if (error) {
-      throw error;
-    } else {
-      customerProfiles.value = data || [];
-    }
-  } catch (error) {
-    console.error("Error fetching customer profiles:", error);
-  }
-}
-
-async function savePhoneNumber(phoneNumber) {
-  try {
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .update({
-        phone_number: phoneNumber,
-      })
-      .eq("id", selectedCustomerProfile.value.id)
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    } else {
-      return data;
-    }
-  } catch (error) {
-    console.error("Error saving phone number:", error);
-    return null;
-  }
-}
-
-async function saveDocument(token) {
-  try {
-    const { data, error } = await supabase
-      .from("documents")
-      .insert([
-        {
-          template_id: selectedTemplateId.value,
-          customer_profile_id: selectedCustomerProfile.value.id,
-          provider: provider.value,
-          status: "sent",
-          token: token,
-        },
-      ])
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    } else {
-      return data;
-    }
-  } catch (error) {
-    console.error("Error saving document:", error);
-    return null;
-  }
-}
-
-async function deleteDocument(documentId) {
-  try {
-    const { data, error } = await supabase
-      .from("documents")
-      .delete()
-      .eq("id", documentId);
-
-    if (error) {
-      throw error;
-    } else {
-      await fetchDocuments();
-    }
-  } catch (error) {
-    console.error("Error deleting document:", error);
-  }
-}
-
-async function downloadDocument(documentUrl) {
-  try {
-    let blob;
-
-    const response = await fetch(documentUrl);
-    if (!response.ok) throw new Error("Network response was not ok");
-    blob = await response.blob();
-
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-
-    const fileName = documentUrl.split("/").pop().split("?")[0];
-    link.download = fileName;
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("Error downloading document:", error);
-    alert("Failed to download document. Please try again.");
-  }
-}
-
-function generateSecureToken(length = 32) {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let token = "";
-
-  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
-    const array = new Uint8Array(length);
-    crypto.getRandomValues(array);
-    for (let i = 0; i < length; i++) {
-      token += chars[array[i] % chars.length];
-    }
-  } else {
-    for (let i = 0; i < length; i++) {
-      token += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-  }
-
-  return token;
-}
+const {
+  generateSecureToken,
+  getCustomerDisplayNameFromProfile,
+  fetchTemplates: fetchTemplatesApi,
+  fetchDocuments: fetchDocumentsApi,
+  fetchCustomers: fetchCustomersApi,
+  fetchCustomerProfiles: fetchCustomerProfilesApi,
+  savePhoneNumber: savePhoneNumberApi,
+  saveDocument: saveDocumentApi,
+  deleteDocument: deleteDocumentApi,
+  downloadDocument: downloadDocumentApi,
+} = useDocument();
 
 function resetForm() {
   selectedTemplateId.value = null;
@@ -559,23 +416,81 @@ function resetForm() {
   selectedCustomerProfile.value = null;
 }
 
+async function fetchTemplates() {
+  try {
+    templates.value = await fetchTemplatesApi();
+  } catch (error) {
+    console.error("Error fetching templates:", error);
+  }
+}
+
+async function fetchDocuments() {
+  try {
+    documents.value = await fetchDocumentsApi();
+  } catch (error) {
+    console.error("Error fetching documents:", error);
+  }
+}
+
+async function fetchCustomers() {
+  try {
+    customers.value = await fetchCustomersApi();
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+  }
+}
+
+async function fetchCustomerProfiles() {
+  try {
+    customerProfiles.value = await fetchCustomerProfilesApi();
+  } catch (error) {
+    console.error("Error fetching customer profiles:", error);
+  }
+}
+
+async function savePhoneNumber(phoneNumber) {
+  return await savePhoneNumberApi(
+    selectedCustomerProfile.value.id,
+    phoneNumber
+  );
+}
+
+async function saveDocument(token) {
+  return await saveDocumentApi(
+    selectedTemplateId.value,
+    selectedCustomerProfile.value.id,
+    provider.value,
+    token
+  );
+}
+
+async function deleteDocument(documentId) {
+  const success = await deleteDocumentApi(documentId);
+  if (success) {
+    await fetchDocuments();
+  }
+}
+
+async function downloadDocument(documentUrl) {
+  const success = await downloadDocumentApi(documentUrl);
+  if (!success) {
+    alert("Failed to download document. Please try again.");
+  }
+}
+
 async function sendSms(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${projectBaseUrl}/user/sms/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
-        msisdn: phoneNumber.value,
+        msisdn: phoneNumber,
         message,
       },
     });
 
-    if (response?.error) {
-      throw new Error(response.error);
-    }
-
-    console.log("SMS sent successfully:", response);
+    if (response?.error) throw new Error(response.error);
     return response;
   } catch (error) {
     throw error;
@@ -584,21 +499,17 @@ async function sendSms(documentId, token) {
 
 async function sendLine(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/line/otp?documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${projectBaseUrl}/user/line/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
       body: {
-        userId: selectedUserId.value,
+        userId: userId,
         message: message,
       },
     });
 
-    if (response?.error) {
-      throw new Error(response.error);
-    }
-
-    console.log("Line message sent successfully:", response);
+    if (response?.error) throw new Error(response.error);
     return response;
   } catch (error) {
     throw error;
@@ -759,6 +670,75 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Card Enhancement */
+.card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Alert Enhancements */
+.alert {
+  border-radius: 8px;
+  border: none;
+  border-left: 4px solid;
+}
+
+.border-left-info {
+  border-left-color: #17a2b8;
+  background-color: #d1ecf1;
+}
+
+.border-left-success {
+  border-left-color: #28a745;
+  background-color: #d4edda;
+}
+
+.border-left-danger {
+  border-left-color: #dc3545;
+  background-color: #f8d7da;
+}
+
+/* Form Control Enhancement */
+.form-control-lg {
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+}
+
+.form-control-lg:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Button Enhancement */
+.btn-lg {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-lg:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-lg:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Label Enhancement */
+label.font-weight-semibold {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.5rem;
+}
+
+/* Document Preview Container */
 .document-preview-container {
   position: relative;
   border: 1px dashed #6c757d;
@@ -773,6 +753,8 @@ onMounted(async () => {
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .document-preview-container img {
@@ -780,6 +762,150 @@ onMounted(async () => {
   height: auto;
   display: block;
   pointer-events: none;
+}
+
+/* Modal Enhancements */
+.modal-content {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+
+/* Table Enhancements */
+.custom-table {
+  margin-bottom: 0;
+  border-spacing: 0 0.5rem !important;
+  border-collapse: separate !important;
+}
+
+.custom-table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 1rem;
+}
+
+.custom-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  background-color: #ffffff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.custom-table tbody tr:hover td {
+  background-color: #f8f9fa;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-sent {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-pending {
+  background-color: #fff3e0;
+  color: #ef6c00;
+}
+
+.status-completed {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+/* Provider Badge */
+.provider-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.provider-line {
+  background-color: #e9fae9;
+  color: #06c755;
+}
+
+.provider-sms {
+  background-color: #e8eaf6;
+  color: #3949ab;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c9d0;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Font Weight Helper */
+.font-weight-medium {
+  font-weight: 500;
 }
 
 @media (max-width: 820px) {

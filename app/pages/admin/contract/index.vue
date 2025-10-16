@@ -1,67 +1,96 @@
 <template>
   <div>
-    <div class="card">
-      <div class="card-header">
-        <h3 class="card-title">All Contracts</h3>
+    <div class="card card-primary shadow-sm">
+      <div class="card-header bg-gradient-primary">
+        <h3 class="card-title text-white">
+          <i class="fas fa-file-contract mr-2"></i>All Contracts
+        </h3>
         <div class="card-tools">
           <button
-            class="btn btn-primary btn-sm"
+            class="btn btn-light btn-sm px-4"
             data-toggle="modal"
             data-target="#addContractModal"
           >
-            <i class="fas fa-plus"></i> Add New Contract
+            <i class="fas fa-plus mr-2"></i> Add New Contract
           </button>
         </div>
       </div>
-      <div class="card-body p-0">
+      <div class="card-body p-3">
         <div class="table-responsive">
-          <table class="table table-bordered table-striped">
+          <table class="table custom-table">
             <thead>
               <tr>
-                <th style="width: 10px">#</th>
+                <th class="text-center" style="width: 50px">#</th>
                 <th>Name</th>
                 <th>Company Name</th>
                 <th class="text-center" style="width: 100px">Status</th>
                 <th>Created At</th>
-                <th class="text-center" style="width: 180px">Actions</th>
+                <th class="text-center" style="width: 150px">Actions</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="(contract, index) in contracts" :key="contract.id">
-                <td>{{ index + 1 }}.</td>
-                <td>{{ contract.name }}</td>
-                <td>{{ contract.company_name }}</td>
-                <td class="text-center">
-                  <span v-if="contract.is_active" class="badge bg-success"
-                    >Active</span
-                  >
-                  <span v-else class="badge bg-secondary">Inactive</span>
+                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td>
+                  <span class="font-weight-medium">{{ contract.name }}</span>
                 </td>
-                <td>{{ formatDateTime(contract.created_at) }}</td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="fas fa-building text-muted mr-2"></i>
+                    <span>{{ contract.company_name }}</span>
+                  </div>
+                </td>
                 <td class="text-center">
-                  <button
-                    class="btn btn-sm"
-                    :class="contract.is_active ? 'btn-warning' : 'btn-success'"
-                    @click="toggleContractStatus(contract)"
+                  <span
+                    class="status-badge"
+                    :class="
+                      contract.is_active ? 'status-active' : 'status-inactive'
+                    "
                   >
-                    <i
+                    {{ contract.is_active ? "Active" : "Inactive" }}
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <i class="far fa-clock text-muted mr-2"></i>
+                    <span>{{ formatDateTime(contract.created_at) }}</span>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <div class="action-buttons">
+                    <button
+                      class="btn btn-icon"
                       :class="
-                        contract.is_active
-                          ? 'fas fa-times-circle'
-                          : 'fas fa-check-circle'
+                        contract.is_active ? 'text-warning' : 'text-success'
                       "
-                    ></i>
-                  </button>
-                  <button
-                    class="btn btn-danger btn-sm ml-2"
-                    @click="deleteContract(contract.id)"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </button>
+                      @click="toggleContractStatus(contract)"
+                      :title="contract.is_active ? 'Deactivate' : 'Activate'"
+                    >
+                      <i
+                        :class="
+                          contract.is_active
+                            ? 'fas fa-times-circle'
+                            : 'fas fa-check-circle'
+                        "
+                      ></i>
+                    </button>
+                    <button
+                      class="btn btn-icon text-danger"
+                      @click="deleteContract(contract.id)"
+                      title="Delete"
+                    >
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
                 </td>
               </tr>
               <tr v-if="!contracts || contracts.length === 0">
-                <td colspan="6" class="text-center">No contracts found.</td>
+                <td colspan="6" class="text-center py-4">
+                  <div class="empty-state">
+                    <i class="fas fa-file-contract fa-2x text-muted mb-2"></i>
+                    <p class="text-muted">No contracts found.</p>
+                  </div>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -81,7 +110,8 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addContractModalLabel">
-              Add New Contract
+              <i class="fas fa-plus-circle text-primary mr-2"></i>Add New
+              Contract
             </h5>
             <button
               type="button"
@@ -93,47 +123,71 @@
             </button>
           </div>
           <form @submit.prevent="addContract">
-            <div class="modal-body">
+            <div class="modal-body p-4">
               <div class="form-group">
-                <label for="contractName">Contract Name</label>
+                <label class="font-weight-semibold">
+                  <i class="fas fa-file-signature text-primary mr-1"></i
+                  >Contract Name
+                </label>
                 <input
                   type="text"
-                  class="form-control"
+                  class="form-control form-control-lg"
                   id="contractName"
                   v-model="newContract.name"
+                  placeholder="Enter contract name"
                   required
                 />
               </div>
               <div class="form-group">
-                <label for="companyName">Company Name</label>
+                <label class="font-weight-semibold">
+                  <i class="fas fa-building text-primary mr-1"></i>Company Name
+                </label>
                 <input
                   type="text"
-                  class="form-control"
+                  class="form-control form-control-lg"
                   id="companyName"
                   v-model="newContract.company_name"
+                  placeholder="Enter company name"
                   required
                 />
               </div>
-              <div class="form-group form-check">
-                <input
-                  type="checkbox"
-                  class="form-check-input"
-                  id="isActive"
-                  v-model="newContract.is_active"
-                />
-                <label class="form-check-label" for="isActive">Is Active</label>
+              <div class="form-group">
+                <label class="font-weight-semibold d-flex align-items-center">
+                  Status
+                  <div class="custom-control custom-switch ml-2">
+                    <input
+                      type="checkbox"
+                      class="custom-control-input"
+                      id="isActive"
+                      v-model="newContract.is_active"
+                    />
+                    <label class="custom-control-label" for="isActive">
+                      {{ newContract.is_active ? "Active" : "Inactive" }}
+                    </label>
+                  </div>
+                </label>
               </div>
-              <p v-if="errorMessage" class="text-danger">{{ errorMessage }}</p>
+              <div
+                v-if="errorMessage"
+                class="alert alert-danger border-left-danger"
+              >
+                <i class="fas fa-exclamation-circle mr-2"></i>{{ errorMessage }}
+              </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer bg-light">
               <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-light btn-lg"
                 data-dismiss="modal"
               >
-                Close
+                <i class="fas fa-times mr-2"></i>Cancel
               </button>
-              <button type="submit" class="btn btn-primary" :disabled="loading">
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg"
+                :disabled="loading"
+              >
+                <i class="fas fa-save mr-2"></i>
                 {{ loading ? "Saving..." : "Save Contract" }}
               </button>
             </div>
@@ -291,3 +345,160 @@ onMounted(async () => {
   });
 });
 </script>
+
+<style scoped>
+/* Card Enhancement */
+.card {
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Form Control Enhancement */
+.form-control {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+/* Button Enhancement */
+.btn-lg {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 0.4rem 1.2rem;
+  font-size: 0.95rem;
+}
+
+.btn-lg:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.25);
+}
+
+/* Table Enhancements */
+.custom-table {
+  margin-bottom: 0;
+  border-spacing: 0 0.5rem !important;
+  border-collapse: separate !important;
+}
+
+.custom-table th {
+  background-color: #f8f9fa;
+  border: none;
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  padding: 1rem;
+}
+
+.custom-table td {
+  padding: 1rem;
+  vertical-align: middle;
+  background-color: #ffffff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.custom-table tbody tr:hover td {
+  background-color: #f8f9fa;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.35rem 0.8rem;
+  border-radius: 50rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-active {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-inactive {
+  background-color: #f5f5f5;
+  color: #757575;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  background-color: #ffffff;
+  color: #495057;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background-color: #f8f9fa;
+  border-color: #c1c9d0;
+  transform: translateY(-1px);
+}
+
+.btn-icon:active {
+  transform: translateY(0);
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state i {
+  opacity: 0.5;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Font Weight Helper */
+.font-weight-medium {
+  font-weight: 500;
+}
+
+/* Modal Enhancements */
+.modal-content {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+}
+</style>
