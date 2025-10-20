@@ -110,9 +110,10 @@
                     <select
                       id="customerSelect"
                       class="form-control"
-                      ref="customerSelectRef"
+                      v-model="currentProfile.customer_id"
                       required
                     >
+                      <option value="" hidden>Select a customer...</option>
                       <option
                         v-for="customer in customers"
                         :key="customer.id"
@@ -210,11 +211,10 @@ const customers = ref([]);
 const loading = ref(false);
 const errorMessage = ref(null);
 const isEditing = ref(false);
-const customerSelectRef = ref(null);
 
 const currentProfile = ref({
   id: null,
-  customer_id: null,
+  customer_id: "",
   full_name: "",
   car_registration_number: "",
   phone_number: "",
@@ -288,14 +288,6 @@ function resetForm() {
     phone_number: "",
   };
   errorMessage.value = null;
-
-  if (
-    process.client &&
-    window.$ &&
-    $("#customerSelect").hasClass("select2-hidden-accessible")
-  ) {
-    $("#customerSelect").val(null).trigger("change");
-  }
 }
 
 async function saveProfile() {
@@ -399,82 +391,19 @@ async function deleteProfile(profileId) {
   }
 }
 
-function initializeSelect2() {
-  if (!process.client || !window.$ || !window.$.fn.select2) {
-    console.warn("jQuery or Select2 not available");
-    return;
-  }
-
-  nextTick(() => {
-    const $select = $("#customerSelect");
-
-    if ($select.hasClass("select2-hidden-accessible")) {
-      $select.select2("destroy");
-    }
-
-    $select.select2({
-      placeholder: "Search and select customer...",
-      allowClear: true,
-      width: "100%",
-      dropdownParent: $("#customerProfileModal"),
-      theme: "bootstrap4",
-    });
-
-    $select.on("change", function () {
-      currentProfile.value.customer_id = this.value || null;
-    });
-
-    if (currentProfile.value.customer_id) {
-      $select.val(currentProfile.value.customer_id).trigger("change");
-    }
-  });
-}
-
 onMounted(async () => {
   await getCustomers();
   await getCustomerProfiles();
 
   if (process.client) {
-    // Wait for jQuery and Select2 to be available
-    const waitForSelect2 = () => {
-      if (window.$ && window.$.fn.select2) {
-        $("#customerProfileModal")
-          .on("hide.bs.modal", function () {
-            resetForm();
-          })
-          .on("shown.bs.modal", function () {
-            setTimeout(() => {
-              initializeSelect2();
-            }, 100);
-          });
-      } else {
-        setTimeout(waitForSelect2, 50);
-      }
-    };
-
-    waitForSelect2();
-  }
-});
-
-watch(customers, () => {
-  if (
-    process.client &&
-    window.$ &&
-    window.$.fn.select2 &&
-    $("#customerProfileModal").hasClass("show")
-  ) {
-    nextTick(() => {
-      initializeSelect2();
+    $("#customerProfileModal").on("hide.bs.modal", function () {
+      resetForm();
     });
   }
 });
 
 onBeforeUnmount(() => {
-  if (process.client && window.$ && window.$.fn.select2) {
-    const $select = $("#customerSelect");
-    if ($select.hasClass("select2-hidden-accessible")) {
-      $select.select2("destroy");
-    }
+  if (process.client) {
     $("#customerProfileModal").off();
   }
 });
@@ -596,47 +525,12 @@ onBeforeUnmount(() => {
   padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
   border-color: #dee2e6;
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
 }
 
 .form-control:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
-}
-
-/* Select2 Styling */
-.select2-container--bootstrap4 .select2-selection--single {
-  height: calc(1.5em + 0.75rem + 2px) !important;
-  border-radius: 6px;
-  border-color: #dee2e6;
-}
-
-.select2-container--bootstrap4
-  .select2-selection--single
-  .select2-selection__rendered {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
-}
-
-.select2-container--bootstrap4
-  .select2-selection--single
-  .select2-selection__arrow {
-  height: calc(1.5em + 0.75rem) !important;
-}
-
-/* Ensure Select2 dropdown appears above modal */
-.select2-container--open {
-  z-index: 1060 !important;
-}
-
-.select2-dropdown {
-  z-index: 1060 !important;
-  border-color: #dee2e6;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.select2-container--bootstrap4.select2-container--focus .select2-selection {
   border-color: #007bff;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
 }
