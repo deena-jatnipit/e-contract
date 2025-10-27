@@ -1,0 +1,1 @@
+INSERT INTO "public"."customers" ("id", "display_name", "picture_url", "created_at") VALUES ('U0b6ef66e72182ad3a91d83ba40270ff6', 'Jay_', 'https://sprofile.line-scdn.net/0hRUYmHWL7DXp0FCf-On9zBQREDhBXZVRoUHBDSBYRBB1IIEMqCnJKT0ZBBk1Adk4vC3sWGUUUVx94B3ocakLxTnMkUEtILUsuXnNAmg', '2025-09-02 09:40:27.481776+00');

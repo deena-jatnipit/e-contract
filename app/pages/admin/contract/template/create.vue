@@ -66,6 +66,7 @@
       <!-- Center - Image Preview -->
       <div class="col-lg-9 col-md-8">
         <TemplateImagePreview
+          v-if="fileType === 'image' && previewImageUrl"
           :preview-image-url="previewImageUrl"
           :placed-fields="placedFields"
           :selected-field="selectedField"
@@ -78,18 +79,19 @@
         />
 
         <TemplatePdfPreview
-          v-if="fileType === 'pdf'"
+          v-else-if="fileType === 'pdf' && uploadedFile"
           :pdf-file="uploadedFile"
           :placed-fields="placedFields"
           :selected-field="selectedField"
           :new-template-name="newTemplateName"
           :selected-contract-id="selectedContractId"
           @field-selected="selectField"
-          @pdf-loaded="onPdfLoad"
+          @pdf-loaded="onImageLoad"
           @template-saved="handleTemplateSaved"
+          @current-page-changed="handlePdfPageChange"
         />
 
-        <!-- <div v-else class="card card-primary">
+        <div v-else class="card card-primary">
           <div class="card-header">
             <h3 class="card-title">Preview</h3>
           </div>
@@ -108,7 +110,7 @@
               </div>
             </div>
           </div>
-        </div> -->
+        </div>
       </div>
 
       <!-- Right Sidebar - Field Properties -->
@@ -141,6 +143,7 @@ const imageLoaded = ref(false);
 
 const uploadedFile = ref(null);
 const fileType = ref(null);
+const currentPdfPage = ref(1); // Track current PDF page
 
 async function fetchContracts() {
   try {
@@ -148,26 +151,76 @@ async function fetchContracts() {
       .from("contracts")
       .select("*")
       .eq("is_active", true);
-    if (error) {
-      console.error("Error fetching contracts:", error);
-    } else {
+    if (!error) {
       contracts.value = data || [];
     }
   } catch (err) {
-    console.error("Error fetching contracts:", err);
+    // Handle error silently
   }
 }
 
 function handleImageUpload(event) {
   const file = event.target.files[0];
-  if (file) {
-    uploadedFile.value = file;
 
-    if (previewImageUrl.value) {
-      URL.revokeObjectURL(previewImageUrl.value);
-    }
+  if (!file) {
+    return;
+  }
 
+  // Validate file size (max 50MB)
+  const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+  if (file.size > maxSize) {
+    alert("File size is too large. Please upload a file smaller than 50MB.");
+    event.target.value = "";
+    return;
+  }
+
+  // Detect file type
+  const fileName = file.name.toLowerCase();
+  const fileTypeFromMime = file.type.toLowerCase();
+  const fileExtension = fileName.split(".").pop();
+
+  // Validate file extension
+  const validImageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
+  const validExtensions = [...validImageExtensions, "pdf"];
+
+  if (!validExtensions.includes(fileExtension)) {
+    alert("Invalid file type. Please upload an image or PDF file.");
+    event.target.value = "";
+    return;
+  }
+
+  // Clean up previous file
+  if (previewImageUrl.value) {
+    URL.revokeObjectURL(previewImageUrl.value);
+    previewImageUrl.value = null;
+  }
+
+  // Reset placed fields when new file is uploaded
+  placedFields.value = [];
+  selectedField.value = null;
+  currentPdfPage.value = 1; // Reset to page 1 when new file is uploaded
+
+  // Set uploaded file
+  uploadedFile.value = file;
+
+  // Determine file type and handle accordingly
+  if (
+    fileTypeFromMime.startsWith("image/") ||
+    validImageExtensions.includes(fileExtension)
+  ) {
+    fileType.value = "image";
     previewImageUrl.value = URL.createObjectURL(file);
+  } else if (
+    fileTypeFromMime === "application/pdf" ||
+    fileExtension === "pdf"
+  ) {
+    fileType.value = "pdf";
+    // PDF will be handled by TemplatePdfPreview component
+  } else {
+    alert("Unable to determine file type. Please try again.");
+    fileType.value = null;
+    uploadedFile.value = null;
+    event.target.value = "";
   }
 }
 
@@ -194,6 +247,7 @@ function addFieldToPreview(fieldToAdd) {
       width: fieldToAdd.default_width || 150,
       height: fieldToAdd.default_height || 40,
       label: fieldToAdd.name === "Check Mark" ? "" : fieldToAdd.label,
+      pageNumber: currentPdfPage.value, // Use current PDF page
     };
 
     placedFields.value.push(newFieldInstance);
@@ -210,6 +264,10 @@ function selectField(field) {
 
 function onImageLoad() {
   imageLoaded.value = true;
+}
+
+function handlePdfPageChange(pageNumber) {
+  currentPdfPage.value = pageNumber;
 }
 
 function removeSelectedField() {
@@ -290,32 +348,6 @@ function handleTemplateSaved() {
   router.back();
 }
 
-// function detectFileType(file) {
-//   if (!file) return null;
-
-//   const fileName = file.name.toLowerCase();
-//   const fileTypeFromMime = file.type.toLowerCase();
-
-//   if (fileTypeFromMime.startsWith("image/")) {
-//     return "image";
-//   } else if (
-//     fileTypeFromMime === "application/pdf" ||
-//     fileName.endsWith(".pdf")
-//   ) {
-//     return "pdf";
-//   }
-
-//   // Fallback to file extension
-//   const extension = fileName.split(".").pop();
-//   if (["jpg", "jpeg", "png"].includes(extension)) {
-//     return "image";
-//   } else if (extension === "pdf") {
-//     return "pdf";
-//   }
-
-//   return null;
-// }
-
 onMounted(async () => {
   await fetchContracts();
   document.addEventListener("keydown", handleKeyDown);
@@ -337,29 +369,8 @@ function handleBeforeUnload(e) {
   }
 }
 
-watch(
-  [newTemplateName, placedFields, uploadedFile],
-  () => {
-    hasChanges.value = true;
-  },
-  { deep: true }
-);
-
-onBeforeRouteLeave((to, from, next) => {
-  if (isSaving.value || !hasChanges.value) {
-    next();
-    return;
-  }
-
-  if (
-    window.confirm(
-      "คุณมีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกจากหน้านี้หรือไม่?"
-    )
-  ) {
-    next();
-  } else {
-    next(false);
-  }
+watch([newTemplateName, placedFields, uploadedFile], () => {
+  hasChanges.value = true;
 });
 
 watch(

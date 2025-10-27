@@ -24,6 +24,7 @@
     "jquery": "^3.7.1",
     "jsonwebtoken": "^9.0.2",
     "nuxt": "^4.0.3",
+    "pdfjs-dist": "^3.11.174",
     "signature_pad": "^5.0.10",
     "vue": "^3.5.18",
     "vue-router": "^4.5.1"

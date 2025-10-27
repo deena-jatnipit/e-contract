@@ -56,11 +56,32 @@
               @mousemove="drag"
               @mouseleave="stopDrag"
             >
+              <!-- PDF Preview -->
+              <div v-if="fileType === 'pdf' && pdfDoc" class="pdf-viewer">
+                <div class="page-selector mb-2" v-if="totalPages > 1">
+                  <label class="form-label small">Page:</label>
+                  <select
+                    class="form-select form-select-sm d-inline-block w-auto"
+                    v-model="currentPage"
+                  >
+                    <option v-for="i in totalPages" :key="i" :value="i">
+                      Page {{ i }}
+                    </option>
+                  </select>
+                </div>
+                <div ref="pdfPageContainer" class="pdf-page-container">
+                  <canvas ref="pdfCanvas" class="pdf-page-canvas"></canvas>
+                </div>
+              </div>
+
+              <!-- Image Preview -->
               <img
-                v-if="previewImageUrl"
+                v-else-if="fileType === 'image' && previewImageUrl"
                 :src="previewImageUrl"
                 class="d-block"
               />
+
+              <!-- No file loaded -->
               <div
                 v-else
                 class="d-flex align-items-center justify-content-center"
@@ -68,7 +89,7 @@
               >
                 <div class="text-center text-muted">
                   <i class="fas fa-image fa-3x mb-3"></i>
-                  <p>Please upload an image to start creating your template.</p>
+                  <p>Loading template...</p>
                 </div>
               </div>
 
@@ -144,6 +165,8 @@ const availableFields = ref([]);
 const previewImageUrl = ref(null);
 const placedFields = ref([]);
 const previewContainer = ref(null);
+const pdfPageContainer = ref(null);
+const pdfCanvas = ref(null);
 const isLoadingTemplate = ref(false);
 const templates = ref(null);
 const selectedField = ref(null);
@@ -154,6 +177,11 @@ const originalImageUrls = ref({
   background: null,
   composite: null,
 });
+const fileType = ref("image"); // 'image' or 'pdf'
+const pdfBytes = ref(null);
+const pdfDoc = ref(null);
+const totalPages = ref(1);
+const currentPage = ref(1);
 
 const activeDrag = ref({
   isDragging: false,
@@ -253,18 +281,47 @@ async function fetchTemplateAndFields() {
       composite: templateData.composite_image_url,
     };
 
-    // Load existing background image
-    if (templateData.background_image_url) {
-      previewImageUrl.value = templateData.background_image_url;
+    // Detect file type
+    if (templateData.file_type === "pdf") {
+      fileType.value = "pdf";
+      // Load PDF
+      if (templateData.background_image_url) {
+        try {
+          const response = await fetch(templateData.background_image_url);
+          const arrayBuffer = await response.arrayBuffer();
+          pdfBytes.value = new Uint8Array(arrayBuffer);
 
-      // Get natural size
-      const img = new window.Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        imageNaturalWidth.value = img.naturalWidth;
-        imageNaturalHeight.value = img.naturalHeight;
-      };
-      img.src = templateData.background_image_url;
+          const pdfjsLib = await loadPdfJs();
+
+          // Ensure worker is set
+          if (pdfjsLib && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+              "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+          }
+
+          pdfDoc.value = await pdfjsLib.getDocument({ data: pdfBytes.value })
+            .promise;
+          totalPages.value = pdfDoc.value.numPages;
+          currentPage.value = 1;
+        } catch (error) {
+          console.error("Error loading PDF:", error);
+        }
+      }
+    } else {
+      fileType.value = "image";
+      // Load existing background image
+      if (templateData.background_image_url) {
+        previewImageUrl.value = templateData.background_image_url;
+
+        // Get natural size
+        const img = new window.Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          imageNaturalWidth.value = img.naturalWidth;
+          imageNaturalHeight.value = img.naturalHeight;
+        };
+        img.src = templateData.background_image_url;
+      }
     }
 
     const fieldsData = Array.isArray(templateData.placed_fields_data)
@@ -295,11 +352,42 @@ async function fetchTemplateAndFields() {
     });
 
     selectedField.value = null;
+
+    // Render PDF if it's a PDF template
+    if (fileType.value === "pdf" && pdfDoc.value) {
+      await renderCurrentPage();
+    }
   } catch (error) {
     console.error("Error in fetchTemplateAndFields:", error);
     alert("Error loading template data: " + error.message);
   } finally {
     isLoadingTemplate.value = false;
+  }
+}
+
+async function renderCurrentPage() {
+  if (!pdfDoc.value || !pdfPageContainer.value) return;
+
+  try {
+    const pageNumber = currentPage.value;
+    const { renderPdfPage } = usePdfOperations();
+    const { canvas } = await renderPdfPage(pdfDoc.value, pageNumber);
+
+    // Replace canvas
+    const container = pdfPageContainer.value;
+    const oldCanvas = pdfCanvas.value;
+    if (oldCanvas && oldCanvas.parentNode) {
+      oldCanvas.parentNode.removeChild(oldCanvas);
+    }
+
+    canvas.className = "pdf-page-canvas";
+    canvas.style.width = "100%";
+    canvas.style.height = "auto";
+    container.appendChild(canvas);
+
+    pdfCanvas.value = canvas;
+  } catch (error) {
+    console.error("Error rendering PDF page:", error);
   }
 }
 
@@ -368,6 +456,9 @@ const {
   calculateFontSize,
   isFieldInBounds,
 } = useCanvasOperations();
+
+// Import PDF operations composable
+const { loadPdfJs, generateCompositePdf } = usePdfOperations();
 
 async function generateCompositeImage() {
   try {
@@ -544,11 +635,6 @@ async function saveTemplate() {
     return;
   }
   try {
-    if (!previewImageUrl.value) {
-      alert("Please upload a background image first");
-      return;
-    }
-
     if (placedFields.value.length === 0) {
       alert("Please add at least one field to the template");
       return;
@@ -560,86 +646,169 @@ async function saveTemplate() {
       return;
     }
 
-    let file;
+    let imageWidth, imageHeight;
 
-    if (originalImageUrls.value.background) {
-      const response = await fetch(originalImageUrls.value.background);
-      if (!response.ok) {
-        alert("Could not fetch the original background image.");
+    if (fileType.value === "pdf") {
+      // Handle PDF
+      if (!pdfBytes.value) {
+        alert("PDF is missing");
         return;
       }
-      const blob = await response.blob();
-      file = new File([blob], "background.png", { type: blob.type });
+
+      const compositePdfBytes = await generateCompositePdf(
+        pdfBytes.value,
+        placedFields.value,
+        currentPage.value
+      );
+
+      if (!compositePdfBytes) {
+        alert("Failed to generate composite PDF");
+        return;
+      }
+
+      const uploadResult = await saveImagesToStorage(
+        templateName,
+        compositePdfBytes
+      );
+      await deleteImages([originalImageUrls.value.composite]);
+
+      // Get PDF dimensions
+      const canvas = document.querySelector(".pdf-page-canvas");
+      imageWidth = canvas ? canvas.width : 800;
+      imageHeight = canvas ? canvas.height : 600;
+
+      const normalizedFields = placedFields.value.map((field) => ({
+        id: field.id,
+        instanceId: field.instanceId,
+        instanceNumber: field.instanceNumber,
+        x: Math.round(field.x),
+        y: Math.round(field.y),
+        width: Math.round(field.width),
+        height: Math.round(field.height),
+        type: field.type,
+        groupId: field.groupId,
+        isGrouped: field.isGrouped,
+        groupSize: field.groupSize,
+        groupPosition: field.groupPosition,
+        pageNumber: currentPage.value,
+      }));
+
+      const templateData = {
+        name: templateName.trim(),
+        contract_id: selectedContractId.value,
+        composite_image_url: uploadResult.compositeImageUrl,
+        image_width: imageWidth,
+        image_height: imageHeight,
+        placed_fields_data: normalizedFields,
+        file_type: "pdf",
+      };
+
+      const { data, error } = await supabase
+        .from("contract_templates")
+        .update(templateData)
+        .eq("id", selectedTemplateId.value)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Database error:", error);
+        alert("Error saving template: " + error.message);
+        return;
+      }
+
+      isSaving.value = true;
+      router.back();
+    } else {
+      // Handle image
+      if (!previewImageUrl.value) {
+        alert("Please upload a background image first");
+        return;
+      }
+
+      let file;
+
+      if (originalImageUrls.value.background) {
+        const response = await fetch(originalImageUrls.value.background);
+        if (!response.ok) {
+          alert("Could not fetch the original background image.");
+          return;
+        }
+        const blob = await response.blob();
+        file = new File([blob], "background.png", { type: blob.type });
+      }
+
+      if (!file) {
+        alert("Image is missing");
+        return;
+      }
+
+      const originalImage = new Image();
+      const imageData = await new Promise((resolve, reject) => {
+        originalImage.onload = () =>
+          resolve({
+            naturalWidth: originalImage.naturalWidth,
+            naturalHeight: originalImage.naturalHeight,
+          });
+        originalImage.onerror = reject;
+        originalImage.src = previewImageUrl.value;
+      });
+
+      const compositeBlob = await generateCompositeImage();
+      if (!compositeBlob) {
+        alert("Failed to generate composite image");
+        return;
+      }
+
+      const uploadResult = await saveImagesToStorage(
+        templateName,
+        compositeBlob
+      );
+
+      await deleteImages([originalImageUrls.value.composite]);
+
+      const compositeImageUrl = uploadResult.compositeImageUrl;
+
+      const normalizedFields = placedFields.value.map((field) => ({
+        id: field.id,
+        instanceId: field.instanceId,
+        instanceNumber: field.instanceNumber,
+        x: Math.round(field.x),
+        y: Math.round(field.y),
+        width: Math.round(field.width),
+        height: Math.round(field.height),
+        type: field.type,
+        groupId: field.groupId,
+        isGrouped: field.isGrouped,
+        groupSize: field.groupSize,
+        groupPosition: field.groupPosition,
+      }));
+
+      const templateData = {
+        name: templateName.trim(),
+        contract_id: selectedContractId.value,
+        composite_image_url: compositeImageUrl,
+        image_width: imageData.naturalWidth,
+        image_height: imageData.naturalHeight,
+        placed_fields_data: normalizedFields,
+        file_type: "image",
+      };
+
+      const { data, error } = await supabase
+        .from("contract_templates")
+        .update(templateData)
+        .eq("id", selectedTemplateId.value)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Database error:", error);
+        alert("Error saving template: " + error.message);
+        return;
+      }
+
+      isSaving.value = true;
+      router.back();
     }
-
-    if (!file) {
-      alert("Image is missing");
-      return;
-    }
-
-    const originalImage = new Image();
-    const imageData = await new Promise((resolve, reject) => {
-      originalImage.onload = () =>
-        resolve({
-          naturalWidth: originalImage.naturalWidth,
-          naturalHeight: originalImage.naturalHeight,
-        });
-      originalImage.onerror = reject;
-      originalImage.src = previewImageUrl.value;
-    });
-
-    const compositeBlob = await generateCompositeImage();
-    if (!compositeBlob) {
-      alert("Failed to generate composite image");
-      return;
-    }
-
-    const uploadResult = await saveImagesToStorage(templateName, compositeBlob);
-
-    await deleteImages([originalImageUrls.value.composite]);
-
-    const compositeImageUrl = uploadResult.compositeImageUrl;
-
-    const normalizedFields = placedFields.value.map((field) => ({
-      id: field.id,
-      instanceId: field.instanceId,
-      instanceNumber: field.instanceNumber,
-      x: Math.round(field.x),
-      y: Math.round(field.y),
-      width: Math.round(field.width),
-      height: Math.round(field.height),
-      type: field.type,
-      groupId: field.groupId,
-      isGrouped: field.isGrouped,
-      groupSize: field.groupSize,
-      groupPosition: field.groupPosition,
-    }));
-
-    const templateData = {
-      name: templateName.trim(),
-      contract_id: selectedContractId.value,
-      composite_image_url: compositeImageUrl,
-      image_width: imageData.naturalWidth,
-      image_height: imageData.naturalHeight,
-      placed_fields_data: normalizedFields,
-      created_at: new Date().toISOString(),
-    };
-
-    const { data, error } = await supabase
-      .from("contract_templates")
-      .update(templateData)
-      .eq("id", selectedTemplateId.value)
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Database error:", error);
-      alert("Error saving template: " + error.message);
-      return;
-    }
-
-    isSaving.value = true;
-    router.back();
   } catch (error) {
     console.error("Save error:", error);
     alert("Error saving template: " + error.message);
@@ -874,6 +1043,12 @@ watch(
   },
   { deep: true }
 );
+
+watch(currentPage, () => {
+  if (fileType.value === "pdf") {
+    renderCurrentPage();
+  }
+});
 </script>
 
 <style scoped>
@@ -1012,5 +1187,33 @@ watch(
   height: auto;
   display: block;
   pointer-events: none;
+}
+
+.pdf-viewer {
+  position: relative;
+  width: 100%;
+}
+
+.pdf-page-container {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.pdf-page-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ddd;
+  background: white;
+}
+
+.page-selector {
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0.25rem;
+  margin-bottom: 0.5rem;
 }
 </style>

@@ -1,6 +1,3 @@
-import { ref } from "vue";
-import { useSupabaseClient } from "#imports";
-
 export const useDocument = () => {
   const supabase = useSupabaseClient();
 

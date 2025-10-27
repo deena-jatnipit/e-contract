@@ -1,0 +1,1 @@
+INSERT INTO "public"."contracts" ("id", "name", "company_name", "is_active", "created_at") VALUES ('6', 'Insurance', 'Deena Sure', 'true', '2025-09-11 03:01:47.714885+00'), ('9', 'Car Insurance', 'Kasetsart University', 'true', '2025-09-24 02:45:12.200518+00');
