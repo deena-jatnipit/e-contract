@@ -204,8 +204,8 @@ export const usePdfOperations = () => {
   // Render check mark on canvas
   function renderCheckMark(ctx, x, y, width, height, fontSize) {
     ctx.save();
-    ctx.strokeStyle = "#198754";
-    ctx.lineWidth = fontSize * 0.15;
+    ctx.strokeStyle = "#000000ff";
+    ctx.lineWidth = fontSize * 0.12;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
@@ -248,25 +248,40 @@ export const usePdfOperations = () => {
 
     const { width: pageWidth, height: pageHeight } = targetPage.getSize();
 
-    // Embed font
-    let font;
-    try {
-      font = await pdfDoc.embedFont(PDFLib.StandardFonts.Helvetica);
-    } catch (e) {
-      font = await pdfDoc.embedFont(PDFLib.StandardFonts.TimesRoman);
-    }
+    console.log("[generateCompositePdf] Page dimensions:", {
+      pageWidth,
+      pageHeight,
+    });
+    console.log(
+      "[generateCompositePdf] Processing fields:",
+      placedFields.length
+    );
 
     // Process each field
     for (const field of placedFields) {
       try {
+        console.log("[generateCompositePdf] Processing field:", {
+          name: field.name,
+          label: field.label,
+          x: field.x,
+          y: field.y,
+          width: field.width,
+          height: field.height,
+        });
+
         if (field.name === "Check Mark") {
-          // For check marks, we'll create a simple canvas and embed it
+          // For check marks, create a transparent canvas
           const canvas = document.createElement("canvas");
-          canvas.width = field.width;
-          canvas.height = field.height;
+          canvas.width = Math.max(field.width, 50);
+          canvas.height = Math.max(field.height, 50);
           const ctx = canvas.getContext("2d");
 
-          renderCheckMark(ctx, 0, 0, field.width, field.height, 12);
+          // Make canvas transparent
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Draw check mark only (no background or border)
+          const fontSize = Math.min(canvas.width, canvas.height) * 0.6;
+          renderCheckMark(ctx, 0, 0, canvas.width, canvas.height, fontSize);
 
           const imageData = canvas.toDataURL("image/png");
           const pngImage = await pdfDoc.embedPng(imageData);
@@ -278,60 +293,98 @@ export const usePdfOperations = () => {
             height: field.height,
           });
         } else {
-          // For text fields
+          // For text fields - render text only (transparent background, no border)
           const text = field.label ? field.label.trim() : "";
+
           if (text) {
-            // Try to draw text directly first (for ASCII)
-            if (/^[a-zA-Z0-9\s\-_@.]+$/.test(text)) {
-              targetPage.drawText(text, {
-                x: field.x,
-                y: pageHeight - field.y - field.height,
-                size: 12,
-                font: font,
-                color: PDFLib.rgb(0, 0, 0),
-              });
-            } else {
-              // For non-ASCII characters, render to canvas and embed as image
-              const canvas = document.createElement("canvas");
-              const ctx = canvas.getContext("2d");
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
 
-              const fontSize = calculateFontSize(field.width, field.height, 12);
-              ctx.font = `${fontSize * 2}px "Sarabun", Arial, sans-serif`;
-              const textMetrics = ctx.measureText(text);
-              const textWidth = textMetrics.width;
-              const textHeight = fontSize * 2;
+            // Calculate proper font size based on field dimensions
+            const fontSize = calculateFontSize(field.width, field.height, 12);
 
-              canvas.width = Math.max(textWidth + 10, field.width);
-              canvas.height = Math.max(textHeight + 10, field.height);
+            // Use higher resolution for better quality
+            const scale = 2;
+            canvas.width = field.width * scale;
+            canvas.height = field.height * scale;
 
-              ctx.fillStyle = "white";
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.scale(scale, scale);
 
-              ctx.font = `${fontSize * 2}px "Sarabun", Arial, sans-serif`;
-              ctx.fillStyle = "black";
-              ctx.textAlign = "left";
-              ctx.textBaseline = "top";
-              ctx.fillText(text, 5, 5);
+            // Make canvas transparent (no background)
+            ctx.clearRect(0, 0, field.width, field.height);
 
-              const imageData = canvas.toDataURL("image/png");
-              const pngImage = await pdfDoc.embedPng(imageData);
+            // Draw text - centered both horizontally and vertically
+            ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif`;
+            ctx.fillStyle = "#000000";
+            ctx.textAlign = "center"; // Center horizontally
+            ctx.textBaseline = "middle"; // Center vertically
 
-              const scaleFactor = fontSize / (fontSize * 2);
-              targetPage.drawImage(pngImage, {
-                x: field.x,
-                y: pageHeight - field.y - field.height,
-                width: Math.min((textWidth + 10) * scaleFactor, field.width),
-                height: Math.min((textHeight + 10) * scaleFactor, field.height),
-              });
+            const maxWidth = field.width - 16; // Small padding
+            const textX = field.width / 2; // Center X position
+            const textY = field.height / 2; // Center Y position
+
+            // Measure and truncate text if needed
+            let displayText = text;
+            let textMetrics = ctx.measureText(displayText);
+
+            if (textMetrics.width > maxWidth) {
+              // Truncate text with ellipsis
+              while (displayText.length > 0 && textMetrics.width > maxWidth) {
+                displayText = displayText.slice(0, -1);
+                textMetrics = ctx.measureText(displayText + "...");
+              }
+              displayText = displayText + "...";
             }
+
+            // Draw main text centered
+            ctx.fillText(displayText, textX, textY);
+
+            // If field is grouped, add instance number (top-right corner)
+            if (field.isGrouped && field.instanceNumber) {
+              const instanceText = `#${field.instanceNumber}`;
+              const instFontSize = fontSize * 0.5;
+              ctx.font = `${instFontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif`;
+              ctx.fillStyle = "#666";
+              ctx.textAlign = "right";
+              ctx.textBaseline = "top";
+
+              // Position in top-right with small padding
+              const instX = field.width - 5;
+              const instY = 5;
+
+              ctx.fillText(instanceText, instX, instY);
+            }
+
+            const imageData = canvas.toDataURL("image/png");
+            const pngImage = await pdfDoc.embedPng(imageData);
+
+            targetPage.drawImage(pngImage, {
+              x: field.x,
+              y: pageHeight - field.y - field.height,
+              width: field.width,
+              height: field.height,
+            });
+
+            console.log(
+              "[generateCompositePdf] Field rendered successfully:",
+              field.instanceId
+            );
           }
         }
       } catch (error) {
-        console.error("Error processing field:", field, error);
+        console.error(
+          "[generateCompositePdf] Error processing field:",
+          field,
+          error
+        );
       }
     }
 
     const modifiedPdfBytes = await pdfDoc.save();
+    console.log(
+      "[generateCompositePdf] PDF saved, size:",
+      modifiedPdfBytes.length
+    );
     return modifiedPdfBytes;
   }
 

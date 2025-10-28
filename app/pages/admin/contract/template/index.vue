@@ -221,7 +221,7 @@ async function deleteTemplate(templateId, compositeImageUrl) {
     if (error) throw error;
 
     const { error: storageError } = await supabase.storage
-      .from("template-images")
+      .from("contract")
       .remove(imagePath);
     if (storageError) throw storageError;
 

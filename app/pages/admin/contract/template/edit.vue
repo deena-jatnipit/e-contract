@@ -225,7 +225,7 @@ async function deleteImages(imageUrls) {
 
   try {
     const { error } = await supabase.storage
-      .from("template-images")
+      .from("contract")
       .remove(imagePaths);
 
     if (error) {
@@ -605,7 +605,7 @@ async function saveImagesToStorage(templateName, compositeBlob) {
   const compositeFilePath = `composites/${compositeFileName}`;
 
   const { error: uploadError2 } = await supabase.storage
-    .from("template-images")
+    .from("contract")
     .upload(compositeFilePath, compositeBlob, {
       cacheControl: "3600",
       upsert: false,
@@ -616,7 +616,7 @@ async function saveImagesToStorage(templateName, compositeBlob) {
   }
 
   const { data: publicUrlData2 } = supabase.storage
-    .from("template-images")
+    .from("contract")
     .getPublicUrl(compositeFilePath);
 
   return {

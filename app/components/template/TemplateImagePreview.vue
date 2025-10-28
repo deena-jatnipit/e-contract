@@ -389,7 +389,7 @@ async function saveImagesToStorage(templateName, originalFile, compositeBlob) {
   const originalFilePath = `templates/${originalFileName}`;
 
   const { error: uploadError1 } = await supabase.storage
-    .from("template-images")
+    .from("contract")
     .upload(originalFilePath, originalFile, {
       cacheControl: "3600",
       upsert: false,
@@ -400,7 +400,7 @@ async function saveImagesToStorage(templateName, originalFile, compositeBlob) {
   }
 
   const { data: publicUrlData1 } = supabase.storage
-    .from("template-images")
+    .from("contract")
     .getPublicUrl(originalFilePath);
 
   // Save composite image
@@ -408,7 +408,7 @@ async function saveImagesToStorage(templateName, originalFile, compositeBlob) {
   const compositeFilePath = `composites/${compositeFileName}`;
 
   const { error: uploadError2 } = await supabase.storage
-    .from("template-images")
+    .from("contract")
     .upload(compositeFilePath, compositeBlob, {
       cacheControl: "3600",
       upsert: false,
@@ -419,7 +419,7 @@ async function saveImagesToStorage(templateName, originalFile, compositeBlob) {
   }
 
   const { data: publicUrlData2 } = supabase.storage
-    .from("template-images")
+    .from("contract")
     .getPublicUrl(compositeFilePath);
 
   return {

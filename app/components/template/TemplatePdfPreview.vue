@@ -139,6 +139,8 @@ const pdfjsLib = shallowRef(null);
 const totalPages = ref(1);
 const currentPage = ref(1);
 const pdfBytes = ref(null);
+const scale = ref(1.5);
+const pdfNaturalDimensions = ref({ width: 0, height: 0 });
 
 // Drag State
 const activeDrag = ref({
@@ -176,6 +178,60 @@ const initPdfJs = async () => {
   }
 };
 
+// Get PDF bounds for coordinate transformation
+function getPdfBounds() {
+  if (!pdfCanvas.value) {
+    return {
+      displayWidth: 0,
+      displayHeight: 0,
+      canvasWidth: 0,
+      canvasHeight: 0,
+      naturalWidth: 0,
+      naturalHeight: 0,
+      scaleX: 1,
+      scaleY: 1,
+    };
+  }
+
+  const canvas = pdfCanvas.value;
+  const canvasRect = canvas.getBoundingClientRect();
+
+  // Display dimensions (how it appears on screen - CSS width/height)
+  const displayWidth = canvasRect.width;
+  const displayHeight = canvasRect.height;
+
+  // Canvas pixel dimensions (internal canvas resolution at scale 1.5)
+  const canvasWidth = canvas.width;
+  const canvasHeight = canvas.height;
+
+  // Natural dimensions (PDF at scale 1.0)
+  const naturalWidth = pdfNaturalDimensions.value.width;
+  const naturalHeight = pdfNaturalDimensions.value.height;
+
+  // Fields are positioned based on displayWidth/displayHeight
+  // We need to convert: display -> natural
+  const scaleX = naturalWidth / displayWidth;
+  const scaleY = naturalHeight / displayHeight;
+
+  console.log("[TemplatePdfPreview] getPdfBounds:", {
+    display: { width: displayWidth, height: displayHeight },
+    canvas: { width: canvasWidth, height: canvasHeight },
+    natural: { width: naturalWidth, height: naturalHeight },
+    scale: { x: scaleX, y: scaleY },
+  });
+
+  return {
+    displayWidth,
+    displayHeight,
+    canvasWidth,
+    canvasHeight,
+    naturalWidth,
+    naturalHeight,
+    scaleX,
+    scaleY,
+  };
+}
+
 // Load PDF
 async function loadPdf() {
   if (!props.pdfFile) {
@@ -193,6 +249,11 @@ async function loadPdf() {
     const arrayBuffer = await props.pdfFile.arrayBuffer();
     pdfBytes.value = new Uint8Array(arrayBuffer);
 
+    console.log(
+      "[TemplatePdfPreview] PDF bytes loaded, length:",
+      pdfBytes.value.length
+    );
+
     // Initialize PDF.js
     const pdfjs = await initPdfJs();
 
@@ -209,6 +270,19 @@ async function loadPdf() {
     totalPages.value = loadedDoc.numPages;
     currentPage.value = 1;
 
+    // Get the natural dimensions of the first page (at scale 1.0)
+    const firstPage = await loadedDoc.getPage(1);
+    const viewport = firstPage.getViewport({ scale: 1.0 });
+    pdfNaturalDimensions.value = {
+      width: viewport.width,
+      height: viewport.height,
+    };
+
+    console.log(
+      "[TemplatePdfPreview] PDF natural dimensions:",
+      pdfNaturalDimensions.value
+    );
+
     // Wait for DOM update
     await nextTick();
 
@@ -219,6 +293,7 @@ async function loadPdf() {
       emit("pdf-loaded");
     }, 100);
   } catch (error) {
+    console.error("[TemplatePdfPreview] Error loading PDF:", error);
     alert("Error loading PDF: " + error.message);
     pdfLoaded.value = false;
   }
@@ -236,8 +311,7 @@ async function renderCurrentPage() {
     const canvas = pdfCanvas.value;
     const context = canvas.getContext("2d");
 
-    const scale = 1.5;
-    const viewport = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: scale.value });
 
     // Set canvas dimensions
     canvas.height = viewport.height;
@@ -257,6 +331,7 @@ async function renderCurrentPage() {
     // Emit page change after successful render
     emit("current-page-changed", pageNumber);
   } catch (error) {
+    console.error("[TemplatePdfPreview] Error rendering PDF page:", error);
     alert("Error rendering PDF page: " + error.message);
   }
 }
@@ -358,7 +433,7 @@ async function saveImagesToStorage(templateName, compositePdfBytes) {
   const originalFilePath = `templates/${originalFileName}`;
 
   const { error: uploadError1 } = await supabase.storage
-    .from("template-images")
+    .from("contract")
     .upload(originalFilePath, props.pdfFile, {
       cacheControl: "3600",
       upsert: false,
@@ -369,7 +444,7 @@ async function saveImagesToStorage(templateName, compositePdfBytes) {
   }
 
   const { data: publicUrlData1 } = supabase.storage
-    .from("template-images")
+    .from("contract")
     .getPublicUrl(originalFilePath);
 
   // Save composite PDF
@@ -381,7 +456,7 @@ async function saveImagesToStorage(templateName, compositePdfBytes) {
   });
 
   const { error: uploadError2 } = await supabase.storage
-    .from("template-images")
+    .from("contract")
     .upload(compositeFilePath, compositeBlob, {
       cacheControl: "3600",
       upsert: false,
@@ -392,7 +467,7 @@ async function saveImagesToStorage(templateName, compositePdfBytes) {
   }
 
   const { data: publicUrlData2 } = supabase.storage
-    .from("template-images")
+    .from("contract")
     .getPublicUrl(compositeFilePath);
 
   return {
@@ -404,6 +479,8 @@ async function saveImagesToStorage(templateName, compositePdfBytes) {
 // Save template
 async function saveTemplate() {
   try {
+    console.log("[TemplatePdfPreview] Starting saveTemplate");
+
     if (!props.pdfFile) {
       alert("Please upload a PDF file first");
       return;
@@ -425,11 +502,70 @@ async function saveTemplate() {
       return;
     }
 
-    // Generate composite PDF using your existing composable
+    // Check if pdfBytes is valid
+    if (!pdfBytes.value || pdfBytes.value.length === 0) {
+      console.error("[TemplatePdfPreview] pdfBytes is empty, reloading PDF");
+      const arrayBuffer = await props.pdfFile.arrayBuffer();
+      pdfBytes.value = new Uint8Array(arrayBuffer);
+    }
+
+    // Verify PDF header
+    const header = String.fromCharCode.apply(null, pdfBytes.value.slice(0, 5));
+    if (header !== "%PDF-") {
+      console.error("[TemplatePdfPreview] Invalid PDF header:", header);
+      alert("Invalid PDF file. The file may be corrupted.");
+      return;
+    }
+
+    // Get PDF bounds for coordinate transformation
+    const bounds = getPdfBounds();
+
+    // Transform fields from display coordinates to PDF natural coordinates
+    const transformedFields = props.placedFields
+      .filter(
+        (field) => !field.pageNumber || field.pageNumber === currentPage.value
+      )
+      .map((field) => {
+        // Convert from display coordinates to natural PDF coordinates
+        const naturalX = field.x * bounds.scaleX;
+        const naturalY = field.y * bounds.scaleY;
+        const naturalWidth = field.width * bounds.scaleX;
+        const naturalHeight = field.height * bounds.scaleY;
+
+        console.log(`[TemplatePdfPreview] Field ${field.instanceId}:`, {
+          display: {
+            x: field.x,
+            y: field.y,
+            width: field.width,
+            height: field.height,
+          },
+          natural: {
+            x: naturalX,
+            y: naturalY,
+            width: naturalWidth,
+            height: naturalHeight,
+          },
+        });
+
+        return {
+          ...field,
+          x: naturalX,
+          y: naturalY,
+          width: naturalWidth,
+          height: naturalHeight,
+        };
+      });
+
+    // Generate composite PDF
+    console.log(
+      "[TemplatePdfPreview] Calling generateCompositePdf with",
+      transformedFields.length,
+      "fields"
+    );
     const { generateCompositePdf } = usePdfOperations();
     const compositePdfBytes = await generateCompositePdf(
       pdfBytes.value,
-      props.placedFields,
+      transformedFields,
       currentPage.value
     );
 
@@ -438,15 +574,24 @@ async function saveTemplate() {
       return;
     }
 
+    console.log(
+      "[TemplatePdfPreview] Composite PDF generated, length:",
+      compositePdfBytes.length
+    );
+
     const { originalImageUrl, compositeImageUrl } = await saveImagesToStorage(
       templateName,
       compositePdfBytes
     );
 
-    // Get PDF dimensions from the rendered canvas
-    const canvas = pdfCanvas.value;
-    const imageWidth = canvas ? canvas.width : 800;
-    const imageHeight = canvas ? canvas.height : 600;
+    // Use natural dimensions for database
+    const imageWidth = pdfNaturalDimensions.value.width;
+    const imageHeight = pdfNaturalDimensions.value.height;
+
+    console.log("[TemplatePdfPreview] Saving with dimensions:", {
+      imageWidth,
+      imageHeight,
+    });
 
     const normalizedFields = props.placedFields.map((field) => ({
       id: field.id,
@@ -483,14 +628,17 @@ async function saveTemplate() {
       .single();
 
     if (error) {
+      console.error("[TemplatePdfPreview] Database error:", error);
       alert("Error saving template: " + error.message);
       return;
     }
 
+    console.log("[TemplatePdfPreview] Template saved successfully");
     alert("Template and PDF saved successfully!");
 
     emit("template-saved", data);
   } catch (error) {
+    console.error("[TemplatePdfPreview] Error in saveTemplate:", error);
     alert("Error saving template: " + error.message);
   }
 }

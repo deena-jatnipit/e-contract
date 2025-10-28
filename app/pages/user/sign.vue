@@ -610,7 +610,7 @@ const handleSubmit = async () => {
     const filePath = `signed/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("template-images")
+      .from("contract")
       .upload(filePath, compositeBlob, {
         cacheControl: "3600",
         upsert: false,
@@ -622,7 +622,7 @@ const handleSubmit = async () => {
 
     // Get public URL
     const { data: publicUrlData } = supabase.storage
-      .from("template-images")
+      .from("contract")
       .getPublicUrl(filePath);
 
     // Update document status
