@@ -47,7 +47,25 @@ export default defineEventHandler(async (event) => {
       body: params,
     });
 
-    return createSuccessResponse(response, "OTP sent successfully");
+    // Check if the OTP service returned a token
+    if (!response || !response.token) {
+      console.error("OTP service response:", response);
+      throw createApiError(
+        500,
+        "OTP service did not return a token",
+        "MISSING_TOKEN"
+      );
+    }
+
+    // Return the response with the token
+    return createSuccessResponse(
+      {
+        token: response.token,
+        status: response.status,
+        message: response.message || "OTP sent successfully",
+      },
+      "OTP sent successfully"
+    );
   } catch (error) {
     const handledError = handleApiError(error, "send-otp");
     return createErrorResponse(handledError, "Failed to send OTP");

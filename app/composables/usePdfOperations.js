@@ -222,6 +222,33 @@ export const usePdfOperations = () => {
     ctx.restore();
   }
 
+  // Render signature image on canvas
+  async function renderSignatureImage(
+    ctx,
+    x,
+    y,
+    width,
+    height,
+    signatureDataUrl
+  ) {
+    try {
+      // Load signature image from data URL
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = signatureDataUrl;
+      });
+
+      // Draw signature image
+      ctx.save();
+      ctx.drawImage(img, x, y, width, height);
+      ctx.restore();
+    } catch (error) {
+      console.error("[usePdfOperations] Error rendering signature:", error);
+    }
+  }
+
   // Check if field is within bounds
   function isFieldInBounds(
     x,
@@ -267,9 +294,41 @@ export const usePdfOperations = () => {
           y: field.y,
           width: field.width,
           height: field.height,
+          hasSignature: !!field.signatureDataUrl,
         });
 
-        if (field.name === "Check Mark") {
+        // Handle signature field
+        if (field.signatureDataUrl) {
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.max(field.width, 50);
+          canvas.height = Math.max(field.height, 50);
+          const ctx = canvas.getContext("2d");
+
+          // Clear canvas (transparent background)
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // Render signature image
+          await renderSignatureImage(
+            ctx,
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+            field.signatureDataUrl
+          );
+
+          const imageData = canvas.toDataURL("image/png");
+          const pngImage = await pdfDoc.embedPng(imageData);
+
+          targetPage.drawImage(pngImage, {
+            x: field.x,
+            y: pageHeight - field.y - field.height,
+            width: field.width,
+            height: field.height,
+          });
+
+          console.log("[generateCompositePdf] Signature rendered successfully");
+        } else if (field.name === "Check Mark") {
           // For check marks, create a transparent canvas
           const canvas = document.createElement("canvas");
           canvas.width = Math.max(field.width, 50);
@@ -421,6 +480,7 @@ export const usePdfOperations = () => {
     calculateFontSize,
     renderTextWithWrapping,
     renderCheckMark,
+    renderSignatureImage,
     isFieldInBounds,
     generateCompositePdf,
     uint8ArrayToBase64,

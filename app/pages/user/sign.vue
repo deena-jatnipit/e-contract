@@ -58,10 +58,24 @@
       </form>
 
       <!-- Image Preview Modal -->
-      <ImagePreviewModal
+      <PreviewImageModal
+        v-if="template && template.file_type !== 'pdf'"
         :template="template"
         :displayFields="previewDisplayFields"
         :previewImageUrl="template?.background_image_url"
+        modalId="templatePreviewModal"
+        modalLabelId="templatePreviewModalLabel"
+        :isSigningMode="true"
+        :fieldValues="formFields"
+        :signatureImageUrl="signaturePreview"
+      />
+
+      <!-- PDF Preview Modal -->
+      <PreviewPdfModal
+        v-if="template && template.file_type === 'pdf'"
+        :template="template"
+        :displayFields="previewDisplayFields"
+        :pdfUrl="template?.background_image_url"
         modalId="templatePreviewModal"
         modalLabelId="templatePreviewModalLabel"
         :isSigningMode="true"
@@ -165,6 +179,7 @@ const previewDisplayFields = computed(() => {
       y: Number(field.y) || 50,
       width: Number(field.width) || 150,
       height: Number(field.height) || 40,
+      pageNumber: field.pageNumber || 1,
     };
   });
 });
@@ -339,19 +354,7 @@ const handleGroupedFieldInput = (groupId, inputValue) => {
   });
 };
 
-// Methods from useImageGeneration
-const sanitizeInput = (input) => {
-  if (typeof input !== "string") return "";
-
-  // Remove potentially dangerous characters
-  return input
-    .replace(/[<>]/g, "") // Remove angle brackets
-    .replace(/javascript:/gi, "") // Remove javascript: protocol
-    .replace(/on\w+=/gi, "") // Remove event handlers
-    .trim();
-};
-
-// Import canvas operations composable
+// Import canvas and PDF operations composables
 const {
   createCanvas,
   loadImage,
@@ -359,10 +362,13 @@ const {
   renderTextWithTruncation,
   renderSignature,
   canvasToBlob,
-  calculateFontSize,
   isFieldInBounds,
 } = useCanvasOperations();
 
+const { generateCompositePdf: generatePdfComposite, sanitizeInput } =
+  usePdfSigning();
+
+// Generate composite image (for image templates)
 const generateCompositeImage = async (
   template,
   formFields,
@@ -462,7 +468,7 @@ const sendSms = async (msisdn) => {
   }
 };
 
-const sendLine = async (userId, documentUrl = null) => {
+const sendLine = async (userId, documentUrl = null, isPdf = false) => {
   try {
     const textMessage =
       "เสร็จสิ้นการเซ็นลายเซ็น เอกสารของคุณถูกบันทึกเรียบร้อยแล้ว";
@@ -475,11 +481,20 @@ const sendLine = async (userId, documentUrl = null) => {
     ];
 
     if (documentUrl) {
-      messages.push({
-        type: "image",
-        originalContentUrl: documentUrl,
-        previewImageUrl: documentUrl,
-      });
+      if (isPdf) {
+        // For PDF files, send URL as text message
+        messages.push({
+          type: "text",
+          text: `ดาวน์โหลดเอกสาร PDF ของคุณได้ที่: ${documentUrl}`,
+        });
+      } else {
+        // For images, send as image attachment
+        messages.push({
+          type: "image",
+          originalContentUrl: documentUrl,
+          previewImageUrl: documentUrl,
+        });
+      }
     }
 
     const response = await $fetch("/api/line/send-message", {
@@ -592,21 +607,38 @@ const handleSubmit = async () => {
   submitting.value = true;
 
   try {
-    // Generate composite image
-    const compositeBlob = await generateCompositeImage(
-      template.value,
-      formFields,
-      groupedFillableFields.value,
-      signatureField.value,
-      signaturePreview.value
-    );
+    let compositeBlob;
+    let fileExtension;
+
+    // Generate composite based on file type
+    if (template.value.file_type === "pdf") {
+      console.log("[sign.vue] Generating PDF composite");
+      compositeBlob = await generatePdfComposite(
+        template.value,
+        formFields,
+        groupedFillableFields.value,
+        signatureField.value,
+        signaturePreview.value
+      );
+      fileExtension = "pdf";
+    } else {
+      console.log("[sign.vue] Generating image composite");
+      compositeBlob = await generateCompositeImage(
+        template.value,
+        formFields,
+        groupedFillableFields.value,
+        signatureField.value,
+        signaturePreview.value
+      );
+      fileExtension = "png";
+    }
 
     if (!compositeBlob) {
-      throw new Error("Failed to generate composite image");
+      throw new Error("Failed to generate composite document");
     }
 
     // Upload to storage
-    const fileName = `${template.value.name.replace(/[^a-zA-Z0-9]/g, "_")}_signed_${Date.now()}.png`;
+    const fileName = `${template.value.name.replace(/[^a-zA-Z0-9]/g, "_")}_signed_${Date.now()}.${fileExtension}`;
     const filePath = `signed/${fileName}`;
 
     const { error: uploadError } = await supabase.storage

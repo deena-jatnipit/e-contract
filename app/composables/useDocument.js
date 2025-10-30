@@ -25,28 +25,25 @@ export const useDocument = () => {
   const getCustomerDisplayNameFromProfile = (profile, customers = []) => {
     if (!profile) return "";
 
-    const customer = Array.isArray(customers)
-      ? customers.find((c) => c.id === profile.customer_id)
-      : null;
-    const customerName = customer
-      ? customer.display_name
-      : `Customer ID: ${profile.customer_id}`;
+    let displayParts = [];
 
-    let displayParts = [customerName];
-
-    if (profile.full_name && profile.full_name !== customerName) {
+    // Add full name if available
+    if (profile.full_name) {
       displayParts.push(profile.full_name);
     }
 
+    // Add car registration number if available
     if (profile.car_registration_number) {
       displayParts.push(profile.car_registration_number);
     }
 
+    // Add phone number if available
     if (profile.phone_number) {
       displayParts.push(profile.phone_number);
     }
 
-    return displayParts.join(" | ");
+    // If no parts are available, return empty string or a fallback
+    return displayParts.length > 0 ? displayParts.join(" | ") : "";
   };
 
   // API Functions

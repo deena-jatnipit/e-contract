@@ -98,18 +98,32 @@
       </div>
     </div>
 
-    <!-- Preview Modal as component -->
-    <ImagePreviewModal
+    <!-- Image Preview Modal -->
+    <PreviewImageModal
+      v-if="selectedTemplate && selectedTemplate.file_type !== 'pdf'"
       :template="selectedTemplate"
       :displayFields="displayFields"
       :previewImageUrl="previewImageUrl"
       modalId="previewModal"
       modalLabelId="previewModalLabel"
     />
+
+    <!-- PDF Preview Modal -->
+    <PreviewPdfModal
+      v-if="selectedTemplate && selectedTemplate.file_type === 'pdf'"
+      :template="selectedTemplate"
+      :displayFields="displayFields"
+      :pdfUrl="previewImageUrl"
+      modalId="pdfPreviewModal"
+      modalLabelId="pdfPreviewModalLabel"
+    />
   </div>
 </template>
 
 <script setup>
+import PreviewImageModal from "~/components/preview/PreviewImageModal.vue";
+import PreviewPdfModal from "~/components/preview/PreviewPdfModal.vue";
+
 const supabase = useSupabaseClient();
 const router = useRouter();
 
@@ -128,11 +142,11 @@ async function getTemplates() {
 
     contractFields.value = fieldsData || [];
 
-    // Then fetch templates
+    // Then fetch templates (include file_type)
     const { data } = await supabase
       .from("contract_templates")
       .select(
-        "id, name, contracts (id, name), placed_fields_data, background_image_url, composite_image_url, image_width, image_height"
+        "id, name, contracts (id, name), placed_fields_data, background_image_url, composite_image_url, image_width, image_height, file_type"
       );
 
     templates.value = data;
@@ -200,10 +214,14 @@ function openPreview(template) {
       y: Number(field.y) || 50,
       width: Number(field.width) || 150,
       height: Number(field.height) || 40,
+      pageNumber: field.pageNumber || 1,
     };
   });
 
-  $("#previewModal").modal("show");
+  // Show the appropriate modal based on file type
+  const modalId =
+    template.file_type === "pdf" ? "#pdfPreviewModal" : "#previewModal";
+  $(modalId).modal("show");
 }
 
 async function deleteTemplate(templateId, compositeImageUrl) {

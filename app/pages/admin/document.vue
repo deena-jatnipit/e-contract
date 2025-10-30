@@ -480,7 +480,7 @@ async function downloadDocument(documentUrl) {
 
 async function sendSms(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${projectBaseUrl}/user/sms/otp?documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/sms/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
@@ -499,12 +499,12 @@ async function sendSms(documentId, token) {
 
 async function sendLine(documentId, token) {
   try {
-    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${projectBaseUrl}/user/line/otp?documentId=${documentId}&token=${token}`;
+    const message = `กรุณาคลิกลิ้งเพื่อเซ็นลายเซ็น ${PROJECT_BASE_URL}/user/line/otp?documentId=${documentId}&token=${token}`;
 
     const response = await $fetch("/api/line/send-message", {
       method: "POST",
       body: {
-        userId: userId,
+        userId: selectedUserId.value,
         message: message,
       },
     });

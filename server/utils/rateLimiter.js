@@ -34,5 +34,23 @@ export const rateLimit = (key, maxRequests = 10, windowMs = 60000) => {
 };
 
 export const getClientIP = (event) => {
-  return getClientIP(event) || "unknown";
+  // Try to get IP from various headers (for proxies/load balancers)
+  const forwarded = event.node.req.headers["x-forwarded-for"];
+  if (forwarded) {
+    // x-forwarded-for can contain multiple IPs, take the first one
+    return forwarded.split(",")[0].trim();
+  }
+
+  const realIp = event.node.req.headers["x-real-ip"];
+  if (realIp) {
+    return realIp;
+  }
+
+  // Fallback to socket remote address
+  const remoteAddress = event.node.req.socket?.remoteAddress;
+  if (remoteAddress) {
+    return remoteAddress;
+  }
+
+  return "unknown";
 };

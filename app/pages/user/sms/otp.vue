@@ -188,13 +188,14 @@ async function fetchDocumentById() {
 
     if (error) {
       throw error;
-    } else {
-      documentData.value = data;
-      state.msisdn = documentData.value.customer_profile_id.phone_number;
-      state.userId = documentData.value.customer_profile_id.customer_id;
     }
+
+    documentData.value = data;
+    state.msisdn = data.customer_profile_id.phone_number;
+    state.userId = data.customer_profile_id.customer_id;
   } catch (error) {
     console.error("Error fetching documents:", error);
+    state.error = "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง";
   }
 }
 
@@ -320,28 +321,33 @@ async function sendOtpRequest() {
     throw new Error(response.error);
   }
 
-  if (!response?.token) {
+  // Handle both response structures
+  const token = response?.data?.token || response?.token;
+
+  if (!token) {
     throw new Error("ไม่ได้รับ token จากเซิร์ฟเวอร์");
   }
 
-  return response;
+  return { ...response, token };
 }
 
 async function verifyOtpRequest(pin) {
   if (!pin || !state.token) {
-    throw new Error("ข้อมูลไม่ครบถ้วน");
+    throw new Error("ข้อมูลไม่ครบถ้วน กรุณาลองใหม่อีกครั้ง");
   }
 
   const response = await $fetch("/api/sms/verify-otp", {
     method: "POST",
     body: {
-      pin,
-      token: state.token,
+      pin: pin.toString(),
+      token: state.token.toString().trim(),
     },
   });
 
   if (response?.error) {
-    throw new Error("รหัส OTP ไม่ถูกต้อง หรือหมดอายุ กรุณาลองใหม่อีกครั้ง");
+    throw new Error(
+      response.error || "รหัส OTP ไม่ถูกต้อง หรือหมดอายุ กรุณาลองใหม่อีกครั้ง"
+    );
   }
 
   return response;
@@ -357,8 +363,6 @@ async function handleSendOtp() {
     state.otpSent = true;
     resetOtpInput();
     startResendCountdown();
-
-    console.log("OTP sent successfully:", response);
   } catch (error) {
     console.error("Error sending OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการส่งรหัส OTP";
@@ -376,8 +380,6 @@ async function handleResendOtp() {
     state.token = response.token;
     resetOtpInput();
     startResendCountdown();
-
-    console.log("OTP resent successfully:", response);
   } catch (error) {
     console.error("Error resending OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการส่งรหัส OTP ใหม่";
@@ -394,12 +396,16 @@ async function handleVerifyOtp() {
     return;
   }
 
+  if (!state.token) {
+    state.error = "ไม่พบ token กรุณาขอรหัส OTP ใหม่";
+    return;
+  }
+
   state.loading = true;
   clearError();
 
   try {
-    const response = await verifyOtpRequest(cleanPin);
-    console.log("OTP verified successfully:", response);
+    await verifyOtpRequest(cleanPin);
 
     await router.push({
       path: "/user/sms/contract1",
@@ -408,13 +414,16 @@ async function handleVerifyOtp() {
   } catch (error) {
     console.error("Error verifying OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการยืนยันรหัส OTP";
+    resetOtpInput();
   } finally {
     state.loading = false;
   }
 }
 
 onMounted(async () => {
+  state.loading = true;
   await fetchDocumentById();
+  state.loading = false;
 });
 
 onBeforeUnmount(() => {
@@ -454,7 +463,7 @@ onBeforeUnmount(() => {
   opacity: 0.6;
 }
 
-/* Mobile optimizations - matching sign.vue */
+/* Mobile optimizations */
 @media (max-width: 768px) {
   .container-fluid {
     padding: 0;
@@ -487,7 +496,7 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Success theme colors - matching sign.vue */
+/* Success theme colors */
 .bg-success {
   background-color: #198754 !important;
 }

@@ -65,7 +65,7 @@
 
       <!-- Center - Image Preview -->
       <div class="col-lg-9 col-md-8">
-        <TemplateImagePreview
+        <TemplateImageCreate
           v-if="fileType === 'image' && previewImageUrl"
           :preview-image-url="previewImageUrl"
           :placed-fields="placedFields"
@@ -78,7 +78,7 @@
           @template-saved="handleTemplateSaved"
         />
 
-        <TemplatePdfPreview
+        <TemplatePdfCreate
           v-else-if="fileType === 'pdf' && uploadedFile"
           :pdf-file="uploadedFile"
           :placed-fields="placedFields"
