@@ -10,7 +10,7 @@
 
       <div
         ref="signaturePadContainer"
-        class="border border-2 border-success rounded position-relative bg-white"
+        class="border border-2 border-success rounded position-relative"
         style="height: 200px; width: 100%"
       >
         <canvas

@@ -30,10 +30,12 @@
             </thead>
             <tbody>
               <tr
-                v-for="(profile, index) in customerProfiles"
+                v-for="(profile, index) in paginatedCustomerProfiles"
                 :key="profile.id"
               >
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+                <td class="text-center text-muted">
+                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                </td>
                 <td>
                   <span class="font-weight-medium">{{
                     profile.customer_id.display_name
@@ -72,6 +74,12 @@
             </tbody>
           </table>
         </div>
+        <TablePagination
+          :current-page="currentPage"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          @page-changed="changePage"
+        />
       </div>
     </div>
 
@@ -205,6 +213,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 const supabase = useSupabaseClient();
 const customerProfiles = ref([]);
 const customers = ref([]);
@@ -218,6 +228,20 @@ const currentProfile = ref({
   full_name: "",
   car_registration_number: "",
   phone_number: "",
+});
+
+const {
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  getPaginatedItems,
+  changePage,
+  setTotalItems,
+} = usePagination(10);
+
+// Create computed for paginated data
+const paginatedCustomerProfiles = computed(() => {
+  return getPaginatedItems(customerProfiles.value);
 });
 
 // Computed property to validate phone number
@@ -244,6 +268,7 @@ async function getCustomerProfiles() {
 
     if (error) throw error;
     customerProfiles.value = data || [];
+    setTotalItems(data.length);
   } catch (error) {
     console.error("Error fetching customer profiles:", error);
   }

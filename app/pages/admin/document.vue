@@ -29,8 +29,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(document, index) in documents" :key="document.id">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+              <tr
+                v-for="(document, index) in paginatedDocuments"
+                :key="document.id"
+              >
+                <td class="text-center text-muted">
+                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                </td>
                 <td>
                   <span class="font-weight-medium">{{
                     document.contract_templates.name
@@ -107,6 +112,12 @@
             </tbody>
           </table>
         </div>
+        <TablePagination
+          :current-page="currentPage"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          @page-changed="changePage"
+        />
       </div>
     </div>
   </div>
@@ -331,6 +342,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 const PROJECT_BASE_URL = useRuntimeConfig().public.projectBaseUrl;
 
 const selectedTemplateId = ref(null);
@@ -407,6 +420,20 @@ const {
   downloadDocument: downloadDocumentApi,
 } = useDocument();
 
+const {
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  getPaginatedItems,
+  changePage,
+  setTotalItems,
+} = usePagination(10);
+
+// Create computed for paginated data
+const paginatedDocuments = computed(() => {
+  return getPaginatedItems(documents.value);
+});
+
 function resetForm() {
   selectedTemplateId.value = null;
   phoneNumber.value = "";
@@ -427,6 +454,7 @@ async function fetchTemplates() {
 async function fetchDocuments() {
   try {
     documents.value = await fetchDocumentsApi();
+    setTotalItems(documents.value.length);
   } catch (error) {
     console.error("Error fetching documents:", error);
   }

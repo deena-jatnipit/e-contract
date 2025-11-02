@@ -1,69 +1,74 @@
 <template>
-  <div class="card card-secondary">
+  <div class="card shadow-sm">
     <div class="card-header">
-      <h3 class="card-title small">Props</h3>
+      <i class="fas fa-sliders-h mr-2"></i>Properties
     </div>
-    <div class="card-body p-2">
-      <h6
-        class="mb-2 small text-truncate text-bold"
-        :title="selectedField.name"
-      >
-        {{ selectedField.name }}
-        <span v-if="selectedField.instanceNumber > 1" class="text-muted">
+    <div class="card-body p-3">
+      <div class="field-title">
+        <span class="field-title-text">{{ selectedField.name }}</span>
+        <span v-if="selectedField.instanceNumber > 1" class="instance-badge">
           #{{ selectedField.instanceNumber }}
         </span>
-      </h6>
-
-      <div class="form-group mb-2">
-        <label class="small mb-1">X</label>
-        <input
-          type="number"
-          class="form-control form-control-sm"
-          v-model.number="localField.x"
-          @input="onPropertyChange"
-          min="0"
-        />
       </div>
 
-      <div class="form-group mb-2">
-        <label class="small mb-1">Y</label>
-        <input
-          type="number"
-          class="form-control form-control-sm"
-          v-model.number="localField.y"
-          @input="onPropertyChange"
-          min="0"
-        />
+      <div class="prop-section">
+        <label class="prop-label">
+          <i class="fas fa-arrows-alt mr-1"></i>Position
+        </label>
+        <div class="prop-row">
+          <div class="prop-input-group">
+            <small class="input-label">X</small>
+            <input
+              type="number"
+              class="prop-input"
+              v-model.number="localField.x"
+              @input="onPropertyChange"
+              min="0"
+            />
+          </div>
+          <div class="prop-input-group">
+            <small class="input-label">Y</small>
+            <input
+              type="number"
+              class="prop-input"
+              v-model.number="localField.y"
+              @input="onPropertyChange"
+              min="0"
+            />
+          </div>
+        </div>
       </div>
 
-      <div class="form-group mb-2">
-        <label class="small mb-1">Width</label>
-        <input
-          type="number"
-          class="form-control form-control-sm"
-          v-model.number="localField.width"
-          @input="onPropertyChange"
-          min="10"
-        />
+      <div class="prop-section">
+        <label class="prop-label">
+          <i class="fas fa-expand-arrows-alt mr-1"></i>Size
+        </label>
+        <div class="prop-row">
+          <div class="prop-input-group">
+            <small class="input-label">Width</small>
+            <input
+              type="number"
+              class="prop-input"
+              v-model.number="localField.width"
+              @input="onPropertyChange"
+              min="10"
+            />
+          </div>
+          <div class="prop-input-group">
+            <small class="input-label">Height</small>
+            <input
+              type="number"
+              class="prop-input"
+              v-model.number="localField.height"
+              @input="onPropertyChange"
+              min="10"
+            />
+          </div>
+        </div>
       </div>
 
-      <div class="form-group mb-2">
-        <label class="small mb-1">Height</label>
-        <input
-          type="number"
-          class="form-control form-control-sm"
-          v-model.number="localField.height"
-          @input="onPropertyChange"
-          min="10"
-        />
-      </div>
-
-      <button
-        class="btn btn-danger btn-sm w-100 mt-1"
-        @click="removeField"
-        title="Remove Field"
-      >
-        <i class="fas fa-trash"></i>
+      <button class="btn-remove" @click="removeField">
+        <i class="fas fa-trash mr-2"></i>Remove Field
       </button>
     </div>
   </div>
@@ -78,7 +83,6 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["field-updated", "field-removed"]);
-
 const localField = ref({});
 
 watch(
@@ -109,25 +113,175 @@ function onPropertyChange() {
 
 function removeField() {
   if (!props.selectedField) return;
-
   emit("field-removed", props.selectedField.instanceId);
 }
 </script>
 
 <style scoped>
-@media (max-width: 768px) {
-  .form-control-sm {
-    font-size: 0.875rem;
-  }
-}
-
+/* Card Styling */
 .card {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border: 1px solid rgba(0, 0, 0, 0.125);
+  border: none;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
-.card-secondary .card-header {
-  background-color: #6c757d;
-  border-color: #6c757d;
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+}
+
+.card-header {
+  background: #007bff;
+  border-bottom: none;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.card-body {
+  background-color: #ffffff;
+}
+
+/* Field Title */
+.field-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.field-title-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.instance-badge {
+  background: rgba(0, 123, 255, 0.1);
+  color: #007bff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+}
+
+/* Property Section */
+.prop-section {
+  margin-bottom: 1.25rem;
+}
+
+.prop-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin-bottom: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.prop-row {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.prop-input-group {
+  flex: 1;
+}
+
+.input-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 0.375rem;
+  font-weight: 500;
+}
+
+.prop-input {
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #495057;
+}
+
+.prop-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.prop-input:hover {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.1rem rgba(0, 123, 255, 0.1);
+}
+
+/* Remove Button */
+.btn-remove {
+  width: 100%;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.625rem 1rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  border: 1px solid #dc3545;
+}
+
+.btn-remove:hover {
+  background: #c82333;
+  border-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.25);
+}
+
+.btn-remove:active {
+  transform: translateY(0);
+}
+
+/* Utility Classes */
+.mr-1 {
+  margin-right: 0.25rem;
+}
+
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #adb5bd;
 }
 </style>

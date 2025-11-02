@@ -79,6 +79,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 const config = useRuntimeConfig();
 
 const fullName = ref("");

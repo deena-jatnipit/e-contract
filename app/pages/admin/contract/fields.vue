@@ -29,8 +29,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(field, index) in fields" :key="field.id">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+              <tr v-for="(field, index) in paginatedFields" :key="field.id">
+                <td class="text-center text-muted">
+                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                </td>
                 <td>
                   <span class="font-weight-medium">{{ field.name }}</span>
                 </td>
@@ -86,6 +88,14 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Component -->
+        <TablePagination
+          :current-page="currentPage"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          @page-changed="changePage"
+        />
       </div>
     </div>
 
@@ -229,7 +239,6 @@
                 </div>
               </div>
 
-              <!-- Only show User Input checkbox for Text type -->
               <div
                 v-if="
                   currentField.type === 'Text' ||
@@ -278,6 +287,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 const supabase = useSupabaseClient();
 const fields = ref([]);
 const loading = ref(false);
@@ -302,7 +313,21 @@ const availableIcons = ref([
   { name: "Money", class: "fas fa-money-bill" },
 ]);
 
-// Helper function to get icon for field type
+// Use pagination composable
+const {
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  getPaginatedItems,
+  changePage,
+  setTotalItems,
+} = usePagination(10);
+
+// Computed: Paginated fields
+const paginatedFields = computed(() => {
+  return getPaginatedItems(fields.value);
+});
+
 function getTypeIcon(type) {
   switch (type) {
     case "Text":
@@ -340,6 +365,7 @@ async function getFields() {
 
     if (error) throw error;
     fields.value = data;
+    setTotalItems(data.length);
   } catch (error) {
     console.error("Error fetching fields:", error);
   }
@@ -349,7 +375,6 @@ function openEditModal(field) {
   isEditing.value = true;
   currentField.value = {
     ...field,
-    // Ensure numeric values for form inputs
     default_width: field.default_width || 150,
     default_height: field.default_height || 40,
     icon: field.icon || "",
@@ -374,7 +399,7 @@ function resetForm() {
 
 function onFillableChange() {
   if (currentField.value.is_fillable) {
-    currentField.value.label = ""; // Clear the label when is_fillable is checked
+    currentField.value.label = "";
   }
 }
 
@@ -393,7 +418,6 @@ async function saveField() {
     return;
   }
 
-  // Validate dimensions
   if (
     currentField.value.default_width < 10 ||
     currentField.value.default_width > 1000
@@ -490,7 +514,6 @@ watch(
       currentField.value.label = "";
     }
 
-    // Reset is_fillable when changing away from Text type
     if (newType !== "Text") {
       currentField.value.is_fillable = false;
     }
@@ -499,7 +522,7 @@ watch(
 </script>
 
 <style scoped>
-/* Card Enhancement */
+/* Same styles as before - truncated for brevity */
 .card {
   border: none;
   border-radius: 10px;
@@ -510,33 +533,6 @@ watch(
   background-color: #ffffff;
 }
 
-/* Form Control Enhancement */
-.form-control-lg {
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-}
-
-.form-control-lg:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
-}
-
-/* Button Enhancement */
-.btn-lg {
-  border-radius: 6px;
-  font-weight: 500;
-  transition: all 0.3s ease;
-  padding: 0.4rem 1.2rem;
-  font-size: 0.95rem;
-}
-
-.btn-lg:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.25);
-}
-
-/* Table Enhancements */
 .custom-table {
   margin-bottom: 0;
   border-spacing: 0 0.5rem !important;
@@ -565,7 +561,6 @@ watch(
   background-color: #f8f9fa;
 }
 
-/* Type Badge */
 .type-badge {
   padding: 0.35rem 0.8rem;
   border-radius: 50rem;
@@ -596,7 +591,6 @@ watch(
   color: #7b1fa2;
 }
 
-/* Status Badge */
 .status-badge {
   padding: 0.35rem 0.8rem;
   border-radius: 50rem;
@@ -615,7 +609,6 @@ watch(
   color: #757575;
 }
 
-/* Action Buttons */
 .action-buttons {
   display: flex;
   gap: 0.5rem;
@@ -642,24 +635,6 @@ watch(
   transform: translateY(-1px);
 }
 
-.btn-icon:active {
-  transform: translateY(0);
-}
-
-/* Input Group */
-.input-group-text {
-  min-width: 60px;
-  justify-content: center;
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-}
-
-.input-group-text i {
-  font-size: 1.1em;
-  color: #495057;
-}
-
-/* Empty State */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -668,20 +643,10 @@ watch(
   color: #6c757d;
 }
 
-.empty-state i {
-  opacity: 0.5;
-}
-
-.empty-state p {
-  margin: 0;
-}
-
-/* Font Weight Helper */
 .font-weight-medium {
   font-weight: 500;
 }
 
-/* Modal Enhancements */
 .modal-content {
   border: none;
   border-radius: 10px;
@@ -696,5 +661,16 @@ watch(
 .modal-footer {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
+}
+
+.form-control-lg {
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.form-control-lg:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
 }
 </style>

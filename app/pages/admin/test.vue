@@ -140,6 +140,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 import { usePdfFormBuilder } from "~/composables/usePdfFormBuilder";
 
 const {

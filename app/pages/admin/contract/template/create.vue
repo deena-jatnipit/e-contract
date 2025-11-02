@@ -1,70 +1,77 @@
 <template>
   <div class="container-fluid">
-    <div class="row">
-      <!-- Left Sidebar - Controls -->
-      <div class="col-lg-2 col-md-4">
-        <!-- Selected Template -->
-        <div class="card card-primary">
-          <div class="card-header">
-            <h3 class="card-title">Create Template</h3>
+    <!-- Template Info Section -->
+    <div class="card template-info-card shadow-sm mb-3">
+      <div class="card-body p-3">
+        <div class="row">
+          <div class="col-md-6">
+            <label class="form-label font-weight-600">Template Name</label>
+            <input
+              type="text"
+              class="form-control"
+              :class="{ 'is-invalid': templateNameError }"
+              v-model="newTemplateName"
+              @input="validateTemplateName"
+              placeholder="Enter template name"
+            />
+            <div class="invalid-feedback" v-if="templateNameError">
+              {{ templateNameError }}
+            </div>
           </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label>Choose Contracts</label>
-              <select class="form-control" v-model="selectedContractId">
-                <option hidden :value="null">-- Choose Contract --</option>
-                <option
-                  v-for="contract in contracts"
-                  :key="contract.id"
-                  :value="contract.id"
-                >
-                  {{ contract.name }}
-                </option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="newTemplateName">New Template Name</label>
-              <input
-                type="text"
-                class="form-control"
-                :class="{ 'is-invalid': templateNameError }"
-                id="newTemplateName"
-                v-model="newTemplateName"
-                @input="validateTemplateName"
-                placeholder="Enter name for new template"
-                required
-              />
-              <div class="invalid-feedback" v-if="templateNameError">
-                {{ templateNameError }}
-              </div>
-            </div>
+          <div class="col-md-6">
+            <label class="form-label font-weight-600">Contract</label>
+            <select class="form-control" v-model="selectedContractId">
+              <option hidden :value="null">-- Choose Contract --</option>
+              <option
+                v-for="contract in contracts"
+                :key="contract.id"
+                :value="contract.id"
+              >
+                {{ contract.name }}
+              </option>
+            </select>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Upload Background -->
-        <div class="card card-primary">
-          <div class="card-header">
-            <h3 class="card-title">Upload Background</h3>
+    <div class="row">
+      <!-- Left Sidebar -->
+      <div class="col-lg-2 col-md-3">
+        <!-- Upload -->
+        <div class="card shadow-sm mb-3">
+          <div class="card-header bg-primary">
+            <i class="fas fa-cloud-upload-alt mr-2"></i>Upload Background
           </div>
-          <div class="card-body">
-            <p class="small">
-              Select an image or PDF to use as a template background.
-            </p>
+          <div class="card-body p-2">
+            <div
+              class="upload-area"
+              :class="{ dragging: isDragging }"
+              @click="triggerFileInput"
+              @drop.prevent="handleFileDrop"
+              @dragover.prevent="isDragging = true"
+              @dragleave.prevent="isDragging = false"
+            >
+              <i class="fas fa-cloud-upload-alt"></i>
+              <span>Click or drop file</span>
+              <small>Image or PDF</small>
+            </div>
             <input
+              ref="fileInput"
               type="file"
               @change="handleImageUpload"
               accept="image/*,application/pdf"
-              class="form-control"
+              style="display: none"
             />
           </div>
         </div>
 
-        <!-- Available Fields -->
+        <!-- Fields -->
         <FieldList @field-added="addFieldToPreview" />
       </div>
 
-      <!-- Center - Image Preview -->
-      <div class="col-lg-9 col-md-8">
+      <!-- Center - Preview -->
+      <div class="col-lg-8 col-md-6">
         <TemplateImageCreate
           v-if="fileType === 'image' && previewImageUrl"
           :preview-image-url="previewImageUrl"
@@ -91,30 +98,16 @@
           @current-page-changed="handlePdfPageChange"
         />
 
-        <div v-else class="card card-primary">
-          <div class="card-header">
-            <h3 class="card-title">Preview</h3>
-          </div>
-          <div class="card-body p-3">
-            <div
-              class="d-flex align-items-center justify-content-center"
-              style="min-height: 400px"
-            >
-              <div class="text-center text-muted">
-                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
-                <h5>Upload a File to Get Started</h5>
-                <p>
-                  Please upload an image or PDF file to start creating your
-                  template.
-                </p>
-              </div>
-            </div>
+        <div v-else class="card shadow-sm">
+          <div class="card-body text-center py-5">
+            <i class="fas fa-image fa-3x text-muted mb-3"></i>
+            <p class="text-muted mb-0">Upload a file to start</p>
           </div>
         </div>
       </div>
 
-      <!-- Right Sidebar - Field Properties -->
-      <div class="col-lg-1 col-md-12">
+      <!-- Right Sidebar -->
+      <div class="col-lg-2 col-md-3">
         <FieldProperties
           v-if="selectedField"
           :selectedField="selectedField"
@@ -127,10 +120,17 @@
 </template>
 
 <script setup>
+definePageMeta({
+  layout: "template",
+  pageTitle: "Create Template",
+});
+
 const supabase = useSupabaseClient();
 const router = useRouter();
 const hasChanges = ref(false);
 const isSaving = ref(false);
+const isDragging = ref(false);
+const fileInput = ref(null);
 
 const newTemplateName = ref("");
 const templateNameError = ref("");
@@ -140,10 +140,9 @@ const selectedField = ref(null);
 const contracts = ref([]);
 const selectedContractId = ref(null);
 const imageLoaded = ref(false);
-
 const uploadedFile = ref(null);
 const fileType = ref(null);
-const currentPdfPage = ref(1); // Track current PDF page
+const currentPdfPage = ref(1);
 
 async function fetchContracts() {
   try {
@@ -155,55 +154,53 @@ async function fetchContracts() {
       contracts.value = data || [];
     }
   } catch (err) {
-    // Handle error silently
+    console.error(err);
   }
+}
+
+function triggerFileInput() {
+  fileInput.value?.click();
 }
 
 function handleImageUpload(event) {
   const file = event.target.files[0];
+  if (file) processFile(file);
+}
 
-  if (!file) {
-    return;
-  }
+function handleFileDrop(event) {
+  isDragging.value = false;
+  const file = event.dataTransfer.files[0];
+  if (file) processFile(file);
+}
 
-  // Validate file size (max 50MB)
-  const maxSize = 50 * 1024 * 1024; // 50MB in bytes
+function processFile(file) {
+  const maxSize = 50 * 1024 * 1024;
   if (file.size > maxSize) {
-    alert("File size is too large. Please upload a file smaller than 50MB.");
-    event.target.value = "";
+    alert("File size too large. Max 50MB.");
     return;
   }
 
-  // Detect file type
   const fileName = file.name.toLowerCase();
   const fileTypeFromMime = file.type.toLowerCase();
   const fileExtension = fileName.split(".").pop();
-
-  // Validate file extension
   const validImageExtensions = ["jpg", "jpeg", "png", "gif", "webp", "bmp"];
   const validExtensions = [...validImageExtensions, "pdf"];
 
   if (!validExtensions.includes(fileExtension)) {
-    alert("Invalid file type. Please upload an image or PDF file.");
-    event.target.value = "";
+    alert("Invalid file type. Upload image or PDF.");
     return;
   }
 
-  // Clean up previous file
   if (previewImageUrl.value) {
     URL.revokeObjectURL(previewImageUrl.value);
     previewImageUrl.value = null;
   }
 
-  // Reset placed fields when new file is uploaded
   placedFields.value = [];
   selectedField.value = null;
-  currentPdfPage.value = 1; // Reset to page 1 when new file is uploaded
-
-  // Set uploaded file
+  currentPdfPage.value = 1;
   uploadedFile.value = file;
 
-  // Determine file type and handle accordingly
   if (
     fileTypeFromMime.startsWith("image/") ||
     validImageExtensions.includes(fileExtension)
@@ -215,20 +212,11 @@ function handleImageUpload(event) {
     fileExtension === "pdf"
   ) {
     fileType.value = "pdf";
-    // PDF will be handled by TemplatePdfPreview component
-  } else {
-    alert("Unable to determine file type. Please try again.");
-    fileType.value = null;
-    uploadedFile.value = null;
-    event.target.value = "";
   }
 }
 
 function addFieldToPreview(fieldToAdd) {
-  if (!fieldToAdd) {
-    console.warn("addFieldToPreview: fieldToAdd is null or undefined");
-    return;
-  }
+  if (!fieldToAdd) return;
 
   const amount = fieldToAdd.amount || 1;
   const groupId = amount > 1 ? `group_${fieldToAdd.id}_${Date.now()}` : null;
@@ -247,11 +235,10 @@ function addFieldToPreview(fieldToAdd) {
       width: fieldToAdd.default_width || 150,
       height: fieldToAdd.default_height || 40,
       label: fieldToAdd.name === "Check Mark" ? "" : fieldToAdd.label,
-      pageNumber: currentPdfPage.value, // Use current PDF page
+      pageNumber: currentPdfPage.value,
     };
 
     placedFields.value.push(newFieldInstance);
-
     if (i === amount - 1) {
       selectedField.value = newFieldInstance;
     }
@@ -272,20 +259,17 @@ function handlePdfPageChange(pageNumber) {
 
 function removeSelectedField() {
   if (!selectedField.value) return;
-
-  const indexToRemove = placedFields.value.findIndex(
+  const idx = placedFields.value.findIndex(
     (f) => f.instanceId === selectedField.value.instanceId
   );
-
-  if (indexToRemove > -1) {
-    placedFields.value.splice(indexToRemove, 1);
+  if (idx > -1) {
+    placedFields.value.splice(idx, 1);
     selectedField.value = null;
   }
 }
 
 function handleKeyDown(event) {
   if (!selectedField.value) return;
-
   const step = event.shiftKey ? 10 : 1;
 
   switch (event.key) {
@@ -313,23 +297,18 @@ function handleKeyDown(event) {
 }
 
 function handleFieldUpdate(data) {
-  // Find the field by instanceId and update its properties
-  const fieldIndex = placedFields.value.findIndex(
+  const idx = placedFields.value.findIndex(
     (field) => field.instanceId === data.instanceId
   );
-
-  if (fieldIndex > -1) {
-    Object.assign(placedFields.value[fieldIndex], data.updates);
+  if (idx > -1) {
+    Object.assign(placedFields.value[idx], data.updates);
   }
 }
 
 function handleFieldRemoval(instanceId) {
-  const indexToRemove = placedFields.value.findIndex(
-    (f) => f.instanceId === instanceId
-  );
-
-  if (indexToRemove > -1) {
-    placedFields.value.splice(indexToRemove, 1);
+  const idx = placedFields.value.findIndex((f) => f.instanceId === instanceId);
+  if (idx > -1) {
+    placedFields.value.splice(idx, 1);
     selectedField.value = null;
   }
 }
@@ -341,11 +320,16 @@ function validateTemplateName() {
 }
 
 function handleTemplateSaved() {
-  if (!validateTemplateName()) {
-    return;
-  }
+  if (!validateTemplateName()) return;
   isSaving.value = true;
   router.back();
+}
+
+function handleBeforeUnload(e) {
+  if (hasChanges.value) {
+    e.preventDefault();
+    e.returnValue = "";
+  }
 }
 
 onMounted(async () => {
@@ -362,13 +346,6 @@ onUnmounted(() => {
   }
 });
 
-function handleBeforeUnload(e) {
-  if (hasChanges.value) {
-    e.preventDefault();
-    e.returnValue = "";
-  }
-}
-
 watch([newTemplateName, placedFields, uploadedFile], () => {
   hasChanges.value = true;
 });
@@ -377,7 +354,6 @@ watch(
   selectedField,
   (newField) => {
     if (newField && typeof newField === "object") {
-      // Ensure all required properties exist with default values
       if (typeof newField.x !== "number") newField.x = 50;
       if (typeof newField.y !== "number") newField.y = 50;
       if (typeof newField.width !== "number") newField.width = 150;
@@ -392,157 +368,130 @@ watch(
 </script>
 
 <style scoped>
-@media (max-width: 820px) {
-  #preview-container {
-    width: 100% !important;
-    margin: 0 !important;
-  }
-
-  #preview-container img {
-    width: 100% !important;
-  }
-
-  .col-lg-3 {
-    margin-bottom: 1rem;
-  }
-}
-
-@media (max-width: 768px) {
-  .container-fluid {
-    padding-left: 15px;
-    padding-right: 15px;
-  }
-
-  .card-body {
-    padding: 1rem;
-  }
-
-  .form-control-sm {
-    font-size: 0.875rem;
-  }
-}
-
-#preview-container {
-  background-image:
-    linear-gradient(45deg, #eee 25%, transparent 25%),
-    linear-gradient(-45deg, #eee 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #eee 75%),
-    linear-gradient(-45deg, transparent 75%, #eee 75%);
-  background-size: 20px 20px;
-  min-height: 400px;
-}
-
-.placed-field {
-  position: absolute;
-  cursor: grab;
-  transition:
-    transform 0.1s ease,
-    box-shadow 0.1s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(255, 255, 255, 0.3);
-  border: 1px solid #ddd;
-}
-
-.placed-field * {
-  user-select: none;
-  pointer-events: none;
-}
-
-.placed-field:active {
-  cursor: grabbing;
-  transform: scale(1.05);
-  z-index: 1000;
-}
-
-.placed-field:hover {
-  background-color: rgba(255, 255, 255, 0.35);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.field-selected {
-  border: rgba(0, 0, 255, 0.3) 2px dashed !important;
-  background-color: rgba(0, 0, 255, 0.05) !important;
-}
-
-.field-content {
-  padding: 2px 5px;
-  border-radius: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  pointer-events: none;
-  width: 100%;
+/* Card Enhancements */
+.card {
+  border: none;
+  border-radius: 10px;
   overflow: hidden;
 }
 
-.field-name {
-  color: #333;
-  font-size: 0.75rem;
+.shadow-sm {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
 }
 
-.field-label {
-  font-weight: bold;
-  margin-left: 8px;
-  font-size: 0.75rem;
+.card-header {
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
 
-.instance-number {
-  font-size: 0.6rem;
-  color: #666;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 1px 3px;
-  border-radius: 2px;
-  margin-left: 3px;
+/* Form Styling */
+.form-label {
+  font-size: 0.875rem;
+  color: #495057;
+  margin-bottom: 0.5rem;
 }
 
-.badge-info {
-  background-color: #17a2b8;
-  color: white;
-  font-size: 0.6rem;
-  padding: 2px 5px;
-  border-radius: 3px;
+.font-weight-600 {
+  font-weight: 600;
 }
 
-/* Card improvements */
-.card {
-  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-  border: 1px solid rgba(0, 0, 0, 0.125);
+.form-control {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
 }
 
-.card-primary .card-header {
-  background-color: #007bff;
+.form-control:focus {
   border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
 }
 
-.card-secondary .card-header {
-  background-color: #6c757d;
-  border-color: #6c757d;
+.form-control.is-invalid {
+  border-color: #dc3545;
 }
 
-.card-info .card-header {
-  background-color: #17a2b8;
-  border-color: #17a2b8;
+.invalid-feedback {
+  font-size: 0.8rem;
+  color: #dc3545;
+  margin-top: 0.25rem;
 }
 
-.template-preview-area {
-  position: relative;
-  border: 1px dashed #6c757d !important;
-  background-color: #f8f9fa;
-  user-select: none;
-  margin-left: auto;
-  margin-right: auto;
-
-  width: 55vw;
-  max-width: 800px;
+/* Upload Area */
+.upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  background: #f8f9fa;
+  transition: all 0.2s ease;
 }
 
-.template-preview-area img {
-  width: 100%;
-  height: auto;
+.upload-area:hover {
+  border-color: #007bff;
+  background: #e7f3ff;
+  transform: translateY(-1px);
+}
+
+.upload-area.dragging {
+  border-color: #007bff;
+  background: #cfe2ff;
+  transform: scale(1.02);
+}
+
+.upload-area i {
   display: block;
-  pointer-events: none;
+  font-size: 2.5rem;
+  color: #6c757d;
+  margin-bottom: 0.75rem;
+}
+
+.upload-area span {
+  display: block;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.upload-area small {
+  display: block;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
+
+/* Icon Spacing */
+.mr-2 {
+  margin-right: 0.5rem;
+}
+
+/* Empty State */
+.text-center {
+  text-align: center;
+}
+
+.text-muted {
+  color: #6c757d !important;
+}
+
+.py-5 {
+  padding-top: 3rem !important;
+  padding-bottom: 3rem !important;
+}
+
+.mb-0 {
+  margin-bottom: 0 !important;
+}
+
+.mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+.fa-3x {
+  font-size: 3rem;
 }
 </style>

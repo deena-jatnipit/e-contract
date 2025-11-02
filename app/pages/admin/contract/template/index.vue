@@ -121,6 +121,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 import PreviewImageModal from "~/components/preview/PreviewImageModal.vue";
 import PreviewPdfModal from "~/components/preview/PreviewPdfModal.vue";
 

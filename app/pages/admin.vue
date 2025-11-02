@@ -1,7 +1,5 @@
 <template>
-  <NuxtLayout name="admin">
-    <NuxtPage />
-  </NuxtLayout>
+  <NuxtPage />
 </template>
 
 <script setup></script>

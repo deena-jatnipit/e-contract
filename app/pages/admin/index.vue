@@ -2,6 +2,8 @@
   <div>index</div>
 </template>
 
-<script setup></script>
+<script setup>
+definePageMeta({ layout: "admin" });
+</script>
 
 <style></style>

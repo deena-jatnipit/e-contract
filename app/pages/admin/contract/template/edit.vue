@@ -33,7 +33,7 @@
       </div>
 
       <!-- Center - Preview -->
-      <div class="col-lg-9 col-md-8">
+      <div class="col-lg-8 col-md-8">
         <TemplateImageEdit
           v-if="fileType === 'image' && previewImageUrl"
           :preview-image-url="previewImageUrl"
@@ -86,7 +86,7 @@
       </div>
 
       <!-- Right Sidebar - Field Properties -->
-      <div class="col-lg-1 col-md-12">
+      <div class="col-lg-2 col-md-12">
         <FieldProperties
           v-if="selectedField"
           :selectedField="selectedField"
@@ -99,6 +99,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "template", pageTitle: "Edit Template" });
+
 const route = useRoute();
 const router = useRouter();
 const supabase = useSupabaseClient();

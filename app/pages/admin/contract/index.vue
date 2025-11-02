@@ -29,8 +29,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(contract, index) in contracts" :key="contract.id">
-                <td class="text-center text-muted">{{ index + 1 }}</td>
+              <tr
+                v-for="(contract, index) in paginatedContracts"
+                :key="contract.id"
+              >
+                <td class="text-center text-muted">
+                  {{ (currentPage - 1) * itemsPerPage + index + 1 }}
+                </td>
                 <td>
                   <span class="font-weight-medium">{{ contract.name }}</span>
                 </td>
@@ -95,6 +100,14 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Component -->
+        <TablePagination
+          :current-page="currentPage"
+          :total-items="totalItems"
+          :items-per-page="itemsPerPage"
+          @page-changed="changePage"
+        />
       </div>
     </div>
 
@@ -199,6 +212,8 @@
 </template>
 
 <script setup>
+definePageMeta({ layout: "admin" });
+
 const supabase = useSupabaseClient();
 const contracts = ref([]);
 const loading = ref(false);
@@ -208,6 +223,21 @@ const newContract = ref({
   name: "",
   company_name: "",
   is_active: true,
+});
+
+// Use pagination composable
+const {
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  getPaginatedItems,
+  changePage,
+  setTotalItems,
+} = usePagination(10);
+
+// Computed: Paginated contracts
+const paginatedContracts = computed(() => {
+  return getPaginatedItems(contracts.value);
 });
 
 function formatDateTime(isoString) {
@@ -232,6 +262,7 @@ async function getContracts() {
 
     if (error) throw error;
     contracts.value = data;
+    setTotalItems(data.length);
   } catch (error) {
     console.error("Error fetching contracts:", error);
   }

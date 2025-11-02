@@ -3,7 +3,11 @@
     <div class="card-header">
       <h3 class="card-title">Preview</h3>
       <div class="card-tools">
-        <button type="submit" class="btn btn-success" @click="saveTemplate">
+        <button
+          type="submit"
+          class="btn btn-success btn-sm"
+          @click="saveTemplate"
+        >
           <i class="fas fa-save"></i> Save Template
         </button>
       </div>
@@ -807,9 +811,23 @@ onUnmounted(() => {
   border: 1px solid rgba(0, 0, 0, 0.125);
 }
 
-.card-primary .card-header {
-  background-color: #007bff;
-  border-color: #007bff;
+.card-header {
+  background: #007bff;
+  border-bottom: none;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header .btn-success {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .template-preview-area {
