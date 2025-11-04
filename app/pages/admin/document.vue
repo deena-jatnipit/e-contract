@@ -76,7 +76,7 @@
                   <div class="action-buttons">
                     <button
                       class="btn btn-icon"
-                      @click="previewDocument(document.document_url)"
+                      @click="previewDocument(document)"
                       data-toggle="modal"
                       data-target="#previewModal"
                       :disabled="!document.document_url"
@@ -134,7 +134,15 @@
     <div class="modal-dialog modal-xl" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h4 class="modal-title" id="previewModalLabel">Document Preview</h4>
+          <h4 class="modal-title" id="previewModalLabel">
+            <i
+              class="fas mr-2"
+              :class="isPdfPreview ? 'fa-file-pdf' : 'fa-image'"
+            ></i>
+            Document Preview
+            <span v-if="isPdfPreview" class="badge badge-danger ml-2">PDF</span>
+            <span v-else class="badge badge-info ml-2">Image</span>
+          </h4>
           <button
             type="button"
             class="close"
@@ -146,20 +154,45 @@
         </div>
         <div class="modal-body">
           <div class="document-preview-container">
+            <!-- Loading State -->
+            <div v-if="isLoadingPreview" class="text-center p-4">
+              <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+              <p class="mt-2">Loading preview...</p>
+            </div>
+
+            <!-- Image Preview -->
             <img
-              v-if="previewImageUrl"
+              v-else-if="!isPdfPreview && previewImageUrl"
               :src="previewImageUrl"
               alt="Document Preview"
             />
+
+            <!-- PDF Preview -->
+            <iframe
+              v-else-if="isPdfPreview && previewImageUrl"
+              :src="previewImageUrl"
+              class="pdf-iframe"
+              frameborder="0"
+            ></iframe>
+
+            <!-- No Preview Available -->
             <div v-else class="text-center p-4">
-              <i class="fas fa-spinner fa-spin fa-2x"></i>
-              <p class="mt-2">Loading preview...</p>
+              <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+              <p class="text-muted">No preview available</p>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">
-            Close
+            <i class="fas fa-times mr-2"></i>Close
+          </button>
+          <button
+            v-if="previewImageUrl"
+            type="button"
+            class="btn btn-primary"
+            @click="downloadDocument(previewImageUrl)"
+          >
+            <i class="fas fa-download mr-2"></i>Download
           </button>
         </div>
       </div>
@@ -374,6 +407,8 @@ const loading = ref(false);
 const provider = ref("line");
 const previewImageUrl = ref(null);
 const selectedCustomerProfile = ref(null);
+const isPdfPreview = ref(false);
+const isLoadingPreview = ref(false);
 
 // Computed property to validate phone number
 const isPhoneValid = computed(() => {
@@ -412,8 +447,17 @@ const filteredCustomerProfiles = computed(() => {
 });
 
 // Handle document preview
-function previewDocument(documentUrl) {
-  previewImageUrl.value = documentUrl;
+function previewDocument(document) {
+  isLoadingPreview.value = true;
+  previewImageUrl.value = document.document_url;
+
+  // Check if the template file type is PDF
+  isPdfPreview.value = document.contract_templates?.file_type === "pdf";
+
+  // Simulate loading delay
+  setTimeout(() => {
+    isLoadingPreview.value = false;
+  }, 300);
 }
 
 // Handle phone input to allow only digits
@@ -614,7 +658,6 @@ async function handleSubmit() {
         throw new Error("Failed to save phone number");
       }
 
-      // Send Line message using phone number as identity
       const lineResult = await sendLine(documentResult.id, token);
 
       if (lineResult?.error) {
@@ -792,7 +835,7 @@ label.font-weight-semibold {
     linear-gradient(45deg, transparent 75%, #eee 75%),
     linear-gradient(-45deg, transparent 75%, #eee 75%);
   background-size: 20px 20px;
-  min-height: 400px;
+  min-height: 500px;
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
@@ -805,6 +848,23 @@ label.font-weight-semibold {
   height: auto;
   display: block;
   pointer-events: none;
+  background-color: white;
+}
+
+/* PDF Iframe */
+.pdf-iframe {
+  width: 100%;
+  height: 600px;
+  border: none;
+  background-color: white;
+}
+
+/* Badge Styles */
+.badge {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  font-weight: 600;
+  vertical-align: middle;
 }
 
 /* Modal Enhancements */
@@ -963,6 +1023,20 @@ label.font-weight-semibold {
   font-weight: 500;
 }
 
+/* Loading Spinner */
+.fa-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 820px) {
   .document-preview-container {
     width: 100% !important;
@@ -971,6 +1045,21 @@ label.font-weight-semibold {
 
   .document-preview-container img {
     width: 100% !important;
+  }
+
+  .pdf-iframe {
+    height: 400px;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-dialog.modal-xl {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+
+  .pdf-iframe {
+    height: 300px;
   }
 }
 </style>

@@ -66,7 +66,7 @@ export const useDocument = () => {
       const { data, error } = await supabase
         .from("documents")
         .select(
-          "id, contract_templates(name), customer_profile_id(customer_id, customers(display_name)), provider, token, status, document_url"
+          "id, contract_templates(name, file_type), customer_profile_id(customer_id, customers(display_name)), provider, token, status, document_url"
         );
 
       if (error) throw error;
