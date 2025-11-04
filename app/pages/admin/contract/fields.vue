@@ -125,6 +125,7 @@
           </div>
           <form @submit.prevent="saveField">
             <div class="modal-body p-4">
+              <!-- Field Name and Type Row -->
               <div class="row">
                 <div class="col-md-6">
                   <div class="form-group">
@@ -161,6 +162,7 @@
                 </div>
               </div>
 
+              <!-- Field Label (conditional) -->
               <div
                 v-if="
                   currentField.type !== 'Icon' &&
@@ -169,24 +171,28 @@
                 "
                 class="form-group"
               >
-                <label for="fieldLabel">
-                  Field Label
+                <label class="font-weight-semibold">
+                  <i class="fas fa-tag text-primary mr-1"></i>Field Label
                   <span class="text-danger">*</span>
                 </label>
                 <input
                   type="text"
-                  class="form-control"
+                  class="form-control form-control-lg"
                   id="fieldLabel"
                   v-model="currentField.label"
+                  placeholder="Enter field label"
                   required
                 />
               </div>
 
+              <!-- Icon Select (conditional) -->
               <div v-if="currentField.type === 'Icon'" class="form-group">
-                <label for="fieldIcon">Select Icon</label>
+                <label class="font-weight-semibold">
+                  <i class="fas fa-icons text-primary mr-1"></i>Select Icon
+                </label>
                 <div class="input-group">
                   <select
-                    class="form-control"
+                    class="form-control form-control-lg"
                     id="fieldIcon"
                     v-model="currentField.icon"
                     required
@@ -201,44 +207,54 @@
                     </option>
                   </select>
                   <div v-if="currentField.icon" class="input-group-append">
-                    <span class="input-group-text">
+                    <span class="input-group-text icon-preview">
                       <i :class="currentField.icon"></i>
                     </span>
                   </div>
                 </div>
               </div>
 
+              <!-- Width and Height Row -->
               <div class="row">
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="fieldWidth">Default Width (px)</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-arrows-alt-h text-primary mr-1"></i
+                      >Default Width (px)
+                    </label>
                     <input
                       type="number"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="fieldWidth"
                       v-model.number="currentField.default_width"
                       min="10"
                       max="1000"
+                      placeholder="150"
                       required
                     />
                   </div>
                 </div>
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="fieldHeight">Default Height (px)</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-arrows-alt-v text-primary mr-1"></i
+                      >Default Height (px)
+                    </label>
                     <input
                       type="number"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="fieldHeight"
                       v-model.number="currentField.default_height"
                       min="10"
                       max="500"
+                      placeholder="40"
                       required
                     />
                   </div>
                 </div>
               </div>
 
+              <!-- User Input Checkbox (conditional) -->
               <div
                 v-if="
                   currentField.type === 'Text' ||
@@ -246,36 +262,50 @@
                 "
                 class="form-group"
               >
-                <div class="form-check">
+                <div class="custom-control custom-switch">
                   <input
                     type="checkbox"
-                    class="form-check-input"
+                    class="custom-control-input"
                     id="fieldIsFillable"
                     v-model="currentField.is_fillable"
                     @change="onFillableChange"
                   />
-                  <label class="form-check-label" for="fieldIsFillable">
-                    User Input?
+                  <label
+                    class="custom-control-label font-weight-semibold"
+                    for="fieldIsFillable"
+                  >
+                    <i class="fas fa-keyboard text-primary mr-1"></i>User Input?
                   </label>
                 </div>
-                <small class="form-text text-muted">
+                <small class="form-text text-muted ml-4">
                   Check if this field should be filled by users. Uncheck if it
                   displays static content.
                 </small>
               </div>
 
-              <p v-if="errorMessage" class="text-danger">{{ errorMessage }}</p>
+              <!-- Error Message -->
+              <div
+                v-if="errorMessage"
+                class="alert alert-danger border-left-danger"
+              >
+                <i class="fas fa-exclamation-circle mr-2"></i>{{ errorMessage }}
+              </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer bg-light">
               <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-light btn-lg"
                 data-dismiss="modal"
                 @click="resetForm"
               >
-                Close
+                <i class="fas fa-times mr-2"></i>Close
               </button>
-              <button type="submit" class="btn btn-primary" :disabled="loading">
+              <button
+                type="submit"
+                class="btn btn-primary btn-lg"
+                :disabled="loading"
+              >
+                <i class="fas fa-save mr-2"></i>
                 {{ loading ? "Saving..." : "Save Field" }}
               </button>
             </div>
@@ -656,11 +686,23 @@ watch(
 .modal-header {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.modal-body {
+  padding: 1.5rem;
 }
 
 .modal-footer {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
 }
 
 .form-control-lg {

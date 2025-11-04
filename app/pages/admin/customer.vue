@@ -96,6 +96,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="customerProfileModalLabel">
+              <i class="fas fa-user-plus text-primary mr-2"></i>
               {{
                 isEditing ? "Edit Customer Profile" : "Add New Customer Profile"
               }}
@@ -110,14 +111,17 @@
             </button>
           </div>
           <form @submit.prevent="saveProfile">
-            <div class="modal-body">
+            <div class="modal-body p-4">
+              <!-- Line Name and Full Name Row -->
               <div class="row">
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="customerSelect">Line Name</label>
+                    <label class="font-weight-semibold">
+                      <i class="fab fa-line text-primary mr-1"></i>Line Name
+                    </label>
                     <select
                       id="customerSelect"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       v-model="currentProfile.customer_id"
                       required
                     >
@@ -134,10 +138,12 @@
                 </div>
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="fullName">Full Name</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-user text-primary mr-1"></i>Full Name
+                    </label>
                     <input
                       type="text"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="fullName"
                       v-model="currentProfile.full_name"
                       placeholder="Enter full name"
@@ -147,15 +153,17 @@
                 </div>
               </div>
 
+              <!-- Car Registration and Phone Number Row -->
               <div class="row">
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="carRegistrationNumber"
-                      >Car Registration Number</label
-                    >
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-car text-primary mr-1"></i>Car
+                      Registration Number
+                    </label>
                     <input
                       type="text"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="carRegistrationNumber"
                       v-model="currentProfile.car_registration_number"
                       placeholder="Enter car registration number"
@@ -165,10 +173,12 @@
                 </div>
                 <div class="col-md-6">
                   <div class="form-group">
-                    <label for="phoneNumber">Phone Number</label>
+                    <label class="font-weight-semibold">
+                      <i class="fas fa-phone text-primary mr-1"></i>Phone Number
+                    </label>
                     <input
                       type="tel"
-                      class="form-control"
+                      class="form-control form-control-lg"
                       id="phoneNumber"
                       v-model="currentProfile.phone_number"
                       placeholder="Enter phone number"
@@ -178,30 +188,38 @@
                     />
                     <div
                       v-if="!isPhoneValid && currentProfile.phone_number"
-                      class="text-danger small mt-1"
+                      class="alert alert-danger border-left-danger mt-2"
                     >
-                      Please enter a valid 10-digit phone number starting with 0
+                      <i class="fas fa-exclamation-circle mr-2"></i>Please enter
+                      a valid 10-digit phone number starting with 0
                     </div>
                   </div>
                 </div>
               </div>
 
-              <p v-if="errorMessage" class="text-danger">{{ errorMessage }}</p>
+              <!-- Error Message -->
+              <div
+                v-if="errorMessage"
+                class="alert alert-danger border-left-danger"
+              >
+                <i class="fas fa-exclamation-circle mr-2"></i>{{ errorMessage }}
+              </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer bg-light">
               <button
                 type="button"
-                class="btn btn-secondary"
+                class="btn btn-light btn-lg"
                 data-dismiss="modal"
                 @click="resetForm"
               >
-                Close
+                <i class="fas fa-times mr-2"></i>Close
               </button>
               <button
                 type="submit"
-                class="btn btn-primary"
+                class="btn btn-primary btn-lg"
                 :disabled="loading || !isPhoneValid"
               >
+                <i class="fas fa-save mr-2"></i>
                 {{ loading ? "Saving..." : "Save Profile" }}
               </button>
             </div>
@@ -537,11 +555,23 @@ onBeforeUnmount(() => {
 .modal-header {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.modal-body {
+  padding: 1.5rem;
 }
 
 .modal-footer {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
 }
 
 /* Form Control Enhancement */

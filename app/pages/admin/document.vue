@@ -178,7 +178,10 @@
     <div class="modal-dialog modal-lg" role="document">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title" id="sendLinkModalLabel">Send Link to User</h5>
+          <h5 class="modal-title" id="sendLinkModalLabel">
+            <i class="fas fa-paper-plane text-primary mr-2"></i>Send Link to
+            User
+          </h5>
           <button
             type="button"
             class="close"
@@ -189,12 +192,15 @@
           </button>
         </div>
         <form @submit.prevent="handleSubmit">
-          <div class="modal-body">
+          <div class="modal-body p-4">
+            <!-- Template Select -->
             <div class="form-group">
-              <label for="templateSelect">Select Template</label>
+              <label class="font-weight-semibold">
+                <i class="fas fa-file-alt text-primary mr-1"></i>Select Template
+              </label>
               <select
                 id="templateSelect"
-                class="form-control"
+                class="form-control form-control-lg"
                 v-model="selectedTemplateId"
                 required
               >
@@ -209,46 +215,49 @@
               </select>
             </div>
 
+            <!-- Name and Car Registration Row -->
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="fullName">Full name</label>
-                  <div class="input-group">
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="fullName"
-                      v-model="fullName"
-                      placeholder="Enter full name"
-                      required
-                    />
-                  </div>
+                  <label class="font-weight-semibold">
+                    <i class="fas fa-user text-primary mr-1"></i>Full Name
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="fullName"
+                    v-model="fullName"
+                    placeholder="Enter full name"
+                    required
+                  />
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="carRegistrationNumber"
-                    >Car Registration Number</label
-                  >
-                  <div class="input-group">
-                    <input
-                      type="text"
-                      class="form-control"
-                      id="carRegistrationNumber"
-                      v-model="carRegistrationNumber"
-                      placeholder="Enter car registration number"
-                      required
-                    />
-                  </div>
+                  <label class="font-weight-semibold">
+                    <i class="fas fa-car text-primary mr-1"></i>Car Registration
+                    Number
+                  </label>
+                  <input
+                    type="text"
+                    class="form-control form-control-lg"
+                    id="carRegistrationNumber"
+                    v-model="carRegistrationNumber"
+                    placeholder="Enter car registration number"
+                    required
+                  />
                 </div>
               </div>
             </div>
 
+            <!-- Provider Select -->
             <div class="form-group">
-              <label for="providerSelect">Select Provider</label>
+              <label class="font-weight-semibold">
+                <i class="fas fa-comments text-primary mr-1"></i>Select Provider
+              </label>
               <select
                 id="providerSelect"
-                class="form-control"
+                class="form-control form-control-lg"
                 v-model="provider"
                 required
               >
@@ -257,13 +266,17 @@
               </select>
             </div>
 
+            <!-- Customer and Phone Row -->
             <div class="row">
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="customerLine">Select Customer Line</label>
+                  <label class="font-weight-semibold">
+                    <i class="fas fa-user-circle text-primary mr-1"></i>Select
+                    Customer Line
+                  </label>
                   <select
                     id="customerLine"
-                    class="form-control"
+                    class="form-control form-control-lg"
                     v-model="selectedCustomerProfile"
                     required
                   >
@@ -295,43 +308,45 @@
               </div>
               <div class="col-md-6">
                 <div class="form-group">
-                  <label for="phoneNumber">Phone Number</label>
-                  <div class="input-group">
-                    <input
-                      type="tel"
-                      class="form-control"
-                      id="phoneNumber"
-                      v-model="phoneNumber"
-                      placeholder="Enter phone number"
-                      maxlength="10"
-                      required
-                      @input="handlePhoneInput"
-                    />
-                  </div>
+                  <label class="font-weight-semibold">
+                    <i class="fas fa-phone text-primary mr-1"></i>Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    class="form-control form-control-lg"
+                    id="phoneNumber"
+                    v-model="phoneNumber"
+                    placeholder="Enter phone number"
+                    maxlength="10"
+                    required
+                    @input="handlePhoneInput"
+                  />
                   <div
                     v-if="!isPhoneValid && phoneNumber"
-                    class="text-danger small mt-1"
+                    class="alert alert-danger border-left-danger mt-2"
                   >
-                    Please enter a valid 10-digit phone number starting with 0
+                    <i class="fas fa-exclamation-circle mr-2"></i>Please enter a
+                    valid 10-digit phone number starting with 0
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div class="modal-footer">
+          <div class="modal-footer bg-light">
             <button
               type="button"
-              class="btn btn-secondary"
+              class="btn btn-light btn-lg"
               data-dismiss="modal"
               @click="resetForm"
             >
-              Close
+              <i class="fas fa-times mr-2"></i>Close
             </button>
             <button
               type="submit"
-              class="btn btn-primary"
+              class="btn btn-primary btn-lg"
               :disabled="loading || !isPhoneValid"
             >
+              <i class="fas fa-paper-plane mr-2"></i>
               {{ loading ? "Sending..." : "Send Link" }}
             </button>
           </div>
@@ -802,11 +817,23 @@ label.font-weight-semibold {
 .modal-header {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #212529;
+}
+
+.modal-body {
+  padding: 1.5rem;
 }
 
 .modal-footer {
   background-color: #f8f9fa;
   border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
 }
 
 /* Table Enhancements */
