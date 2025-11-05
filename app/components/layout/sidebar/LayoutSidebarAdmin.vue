@@ -7,12 +7,12 @@
     </NuxtLink>
 
     <div class="sidebar">
-      <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+      <!-- <div class="user-panel mt-3 pb-3 mb-3 d-flex">
         <div class="image"></div>
         <div class="info">
           <a href="#" class="d-block">User</a>
         </div>
-      </div>
+      </div> -->
 
       <nav class="mt-2">
         <ul
@@ -21,18 +21,18 @@
           role="menu"
           data-accordion="false"
         >
-          <li class="nav-header">MAIN CONTENT</li>
+          <li class="nav-header">หน้าหลัก</li>
           <li class="nav-item">
             <NuxtLink to="/admin/document" class="nav-link">
               <i class="nav-icon fas fa-file"></i>
-              <p>Document</p>
+              <p>ส่งลิ้งให้ลูกค้า</p>
             </NuxtLink>
           </li>
           <li class="nav-item menu-open">
             <a href="#" class="nav-link active">
               <i class="nav-icon fas fa-copy"></i>
               <p>
-                Contract
+                เพิ่มแบบฟอร์ม
                 <i class="right fas fa-angle-left"></i>
               </p>
             </a>
@@ -40,19 +40,19 @@
               <li class="nav-item">
                 <NuxtLink to="/admin/contract" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Details</p>
+                  <p>รายละเอียด</p>
                 </NuxtLink>
               </li>
               <li class="nav-item">
                 <NuxtLink to="/admin/contract/fields" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Fields</p>
+                  <p>ฟิลด์</p>
                 </NuxtLink>
               </li>
               <li class="nav-item">
                 <NuxtLink to="/admin/contract/template" class="nav-link">
                   <i class="far fa-circle nav-icon"></i>
-                  <p>Templates</p>
+                  <p>เทมเพลต</p>
                 </NuxtLink>
               </li>
             </ul>
@@ -60,21 +60,21 @@
           <li class="nav-item">
             <NuxtLink to="/admin/customer" class="nav-link">
               <i class="nav-icon fas fa-user"></i>
-              <p>Customer Profiles</p>
+              <p>ข้อมูลลูกค้า</p>
             </NuxtLink>
           </li>
 
-          <li class="nav-header">ACCOUNT</li>
+          <li class="nav-header">ตั้งค่าระบบ</li>
           <li class="nav-item">
             <NuxtLink to="/admin/register" class="nav-link">
               <i class="nav-icon fa-regular fa-address-card"></i>
-              <p class="text">Register</p>
+              <p class="text">ลงทะเบียน</p>
             </NuxtLink>
           </li>
           <li class="nav-item">
             <a href="#" class="nav-link" @click.prevent="logout">
               <i class="nav-icon fas fa-sign-out-alt text-danger"></i>
-              <p class="text">Logout</p>
+              <p class="text">ออกจากระบบ</p>
             </a>
           </li>
         </ul>

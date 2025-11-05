@@ -393,12 +393,6 @@ async function deleteOldComposite() {
     const { error } = await supabase.storage
       .from("contract")
       .remove([filePath]);
-
-    if (error) {
-      console.error("Error deleting old composite:", error);
-    } else {
-      console.log("Successfully deleted old composite:", filePath);
-    }
   } catch (error) {
     console.error("Error in deleteOldComposite:", error);
   }

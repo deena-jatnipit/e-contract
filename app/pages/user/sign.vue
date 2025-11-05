@@ -460,7 +460,6 @@ const sendSms = async (msisdn) => {
       throw new Error(response.error);
     }
 
-    console.log("SMS sent successfully");
     return true;
   } catch (error) {
     console.error("Failed to send SMS:", error);
@@ -509,7 +508,6 @@ const sendLine = async (userId, documentUrl = null, isPdf = false) => {
       throw new Error(response.error);
     }
 
-    console.log("Line message sent successfully");
     return true;
   } catch (error) {
     console.error("Failed to send Line message:", error);
@@ -532,7 +530,6 @@ const sendTelegram = async (documentId) => {
       throw new Error(response.error);
     }
 
-    console.log("Telegram message sent successfully");
     return true;
   } catch (error) {
     console.error("Failed to send Telegram message:", error);
@@ -540,13 +537,22 @@ const sendTelegram = async (documentId) => {
   }
 };
 
-const sendNotification = async (documentData, documentId, documentUrl) => {
+const sendNotification = async (
+  documentData,
+  documentId,
+  documentUrl,
+  isPdf = false
+) => {
   const notifications = [];
 
   try {
     if (documentData.provider === "line") {
       notifications.push(
-        sendLine(documentData.customer_profile_id.customer_id, documentUrl)
+        sendLine(
+          documentData.customer_profile_id.customer_id,
+          documentUrl,
+          isPdf
+        )
       );
     }
 
@@ -612,7 +618,6 @@ const handleSubmit = async () => {
 
     // Generate composite based on file type
     if (template.value.file_type === "pdf") {
-      console.log("[sign.vue] Generating PDF composite");
       compositeBlob = await generatePdfComposite(
         template.value,
         formFields,
@@ -622,7 +627,6 @@ const handleSubmit = async () => {
       );
       fileExtension = "pdf";
     } else {
-      console.log("[sign.vue] Generating image composite");
       compositeBlob = await generateCompositeImage(
         template.value,
         formFields,
@@ -674,8 +678,14 @@ const handleSubmit = async () => {
       throw new Error("Database error: " + error.message);
     }
 
-    // Send notifications
-    await sendNotification(documentData.value, data.id, data.document_url);
+    // Send notifications with isPdf flag
+    const isPdf = template.value.file_type === "pdf";
+    await sendNotification(
+      documentData.value,
+      data.id,
+      data.document_url,
+      isPdf
+    );
 
     // Redirect to success page
     router.push("/user/sign-success");

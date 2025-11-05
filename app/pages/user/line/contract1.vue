@@ -158,7 +158,6 @@ async function sendLine(message) {
       throw new Error(response.error);
     }
 
-    console.log("Line message sent successfully:", response);
     return response;
   } catch (error) {
     throw error;

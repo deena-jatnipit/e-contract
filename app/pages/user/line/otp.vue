@@ -325,8 +325,6 @@ async function sendOtpRequest() {
 }
 
 async function verifyOtpRequest(pin) {
-  console.log("Verify OTP - Pin:", pin, "Token:", state.token); // Debug log
-
   if (!pin || !state.token) {
     console.error("Missing data - Pin:", !!pin, "Token:", !!state.token);
     throw new Error("ข้อมูลไม่ครบถ้วน - กรุณาลองใหม่อีกครั้ง");
@@ -335,12 +333,10 @@ async function verifyOtpRequest(pin) {
   const response = await $fetch("/api/sms/verify-otp", {
     method: "POST",
     body: {
-      pin: pin.toString(), // Ensure it's a string
-      token: state.token.toString().trim(), // Ensure it's trimmed
+      pin: pin.toString(),
+      token: state.token.toString().trim(),
     },
   });
-
-  console.log("Verify OTP Response:", response); // Debug log
 
   if (response?.error) {
     throw new Error(
@@ -361,8 +357,6 @@ async function handleSendOtp() {
     state.otpSent = true;
     resetOtpInput();
     startResendCountdown();
-
-    console.log("OTP sent successfully, token stored:", !!state.token);
   } catch (error) {
     console.error("Error sending OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการส่งรหัส OTP";
@@ -380,8 +374,6 @@ async function handleResendOtp() {
     state.token = response.token;
     resetOtpInput();
     startResendCountdown();
-
-    console.log("OTP resent successfully, token stored:", !!state.token);
   } catch (error) {
     console.error("Error resending OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการส่งรหัส OTP ใหม่";
@@ -409,7 +401,6 @@ async function handleVerifyOtp() {
 
   try {
     const response = await verifyOtpRequest(cleanPin);
-    console.log("OTP verified successfully:", response);
 
     await router.push({
       path: "/user/line/contract1",
@@ -418,7 +409,7 @@ async function handleVerifyOtp() {
   } catch (error) {
     console.error("Error verifying OTP:", error);
     state.error = error.message || "เกิดข้อผิดพลาดในการยืนยันรหัส OTP";
-    resetOtpInput(); // Clear OTP input on error
+    resetOtpInput();
   } finally {
     state.loading = false;
   }

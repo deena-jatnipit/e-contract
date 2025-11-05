@@ -18,14 +18,10 @@ export const usePdfSigning = () => {
     signaturePreview
   ) => {
     try {
-      console.log("[usePdfSigning] Starting PDF composite generation");
-
       // Load PDF bytes from background URL
       const response = await fetch(template.background_image_url);
       const arrayBuffer = await response.arrayBuffer();
       const pdfBytes = new Uint8Array(arrayBuffer);
-
-      console.log("[usePdfSigning] PDF loaded, size:", pdfBytes.length);
 
       // Get PDF operations composable
       const { generateCompositePdf: generatePdf } = usePdfOperations();
@@ -34,8 +30,6 @@ export const usePdfSigning = () => {
       const displayWidth = 800; // Design width used in templates
       const naturalWidth = template.image_width || displayWidth;
       const scaleRatio = naturalWidth / displayWidth;
-
-      console.log("[usePdfSigning] Scale ratio:", scaleRatio);
 
       // Collect all fillable fields with values
       const allFields = [
@@ -86,18 +80,10 @@ export const usePdfSigning = () => {
         fieldsByPage[sigPageNum].push(sigField);
       }
 
-      console.log(
-        "[usePdfSigning] Fields grouped by page:",
-        Object.keys(fieldsByPage)
-      );
-
       // Generate composite PDF for each page
       let compositePdfBytes = pdfBytes;
 
       for (const [pageNum, pageFields] of Object.entries(fieldsByPage)) {
-        console.log(
-          `[usePdfSigning] Processing page ${pageNum} with ${pageFields.length} fields`
-        );
         compositePdfBytes = await generatePdf(
           compositePdfBytes,
           pageFields,
@@ -108,11 +94,6 @@ export const usePdfSigning = () => {
       if (!compositePdfBytes) {
         throw new Error("Failed to generate composite PDF");
       }
-
-      console.log(
-        "[usePdfSigning] Composite PDF generated, size:",
-        compositePdfBytes.length
-      );
 
       // Convert to Blob
       return new Blob([compositePdfBytes], { type: "application/pdf" });

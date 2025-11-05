@@ -28,13 +28,6 @@
         >
           <i class="fas fa-eraser me-1"></i>Clear
         </button>
-        <button
-          type="button"
-          @click="updateSignaturePreview"
-          class="btn btn-outline-primary flex-fill"
-        >
-          <i class="fas fa-check me-1"></i>Confirm
-        </button>
       </div>
 
       <div v-if="signatureError" class="text-danger small mt-2">

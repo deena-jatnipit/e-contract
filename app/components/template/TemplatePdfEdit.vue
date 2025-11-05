@@ -260,10 +260,6 @@ async function loadPdf() {
       throw new Error("PDF container not found in DOM");
     }
 
-    console.log(
-      "[TemplatePdfPreviewEdit] Loading PDF, bytes length:",
-      props.pdfBytes.length
-    );
 
     // Initialize PDF.js
     const pdfjs = await initPdfJs();
@@ -289,10 +285,6 @@ async function loadPdf() {
       height: viewport.height,
     };
 
-    console.log(
-      "[TemplatePdfPreviewEdit] PDF loaded, natural dimensions:",
-      pdfNaturalDimensions.value
-    );
 
     // Wait for DOM update
     await nextTick();
@@ -461,11 +453,7 @@ async function deleteOldComposite() {
       .from("contract")
       .remove([filePath]);
 
-    if (error) {
-      console.error("Error deleting old composite:", error);
-    } else {
-      console.log("Successfully deleted old composite:", filePath);
-    }
+ 
   } catch (error) {
     console.error("Error in deleteOldComposite:", error);
   }
@@ -501,7 +489,6 @@ async function saveCompositeToStorage(templateName, compositePdfBytes) {
 // Save template
 async function saveTemplate() {
   try {
-    console.log("[TemplatePdfPreviewEdit] Starting saveTemplate");
 
     // Use originalPdfBytes for saving (not detached)
     const bytesToUse = props.originalPdfBytes || props.pdfBytes;
@@ -601,10 +588,6 @@ async function saveTemplate() {
       return;
     }
 
-    console.log(
-      "[TemplatePdfPreviewEdit] Composite PDF generated, length:",
-      compositePdfBytes.length
-    );
 
     // Delete old composite
     await deleteOldComposite();
@@ -619,10 +602,6 @@ async function saveTemplate() {
     const imageWidth = props.imageWidth || pdfNaturalDimensions.value.width;
     const imageHeight = props.imageHeight || pdfNaturalDimensions.value.height;
 
-    console.log("[TemplatePdfPreviewEdit] Saving with dimensions:", {
-      imageWidth,
-      imageHeight,
-    });
 
     // Normalize fields (keep original display coordinates for editing later)
     const normalizedFields = props.placedFields.map((field) => ({
@@ -662,7 +641,6 @@ async function saveTemplate() {
       return;
     }
 
-    console.log("[TemplatePdfPreviewEdit] Template saved successfully");
     alert("Template updated successfully!");
 
     emit("template-saved", data);

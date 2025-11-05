@@ -75,7 +75,6 @@ async function handleLogin() {
       password: password.value,
     });
     if (error) throw error;
-    console.log("Login successful:", loginData);
 
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
@@ -84,7 +83,6 @@ async function handleLogin() {
       .single();
 
     if (profileError) throw profileError;
-    console.log("User profile:", profile);
 
     if (profile && profile.role === "admin") {
       router.push("/admin/document");

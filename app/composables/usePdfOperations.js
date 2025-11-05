@@ -4,8 +4,6 @@ export const usePdfOperations = () => {
     if (typeof window === "undefined") return null;
 
     try {
-      console.log("[PDF Operations] PDF.js initialization started");
-
       // Import PDF.js dynamically
       const pdfjs = await import("pdfjs-dist");
 
@@ -38,19 +36,15 @@ export const usePdfOperations = () => {
 
   // Load PDF document
   async function loadPdfDocument(pdfUrl) {
-    console.log("[PDF Operations] Starting loadPdfDocument");
     const pdfjsLib = await loadPdfJs();
-    console.log("[PDF Operations] PDF.js library loaded:", !!pdfjsLib);
 
     try {
       if (typeof pdfUrl === "string") {
         // URL-based loading
-        console.log("[PDF Operations] Loading from URL");
         const loadingTask = pdfjsLib.getDocument(pdfUrl);
         return await loadingTask.promise;
       } else {
         // ArrayBuffer/Uint8Array-based loading
-        console.log("[PDF Operations] Loading from binary data");
         const loadingTask = pdfjsLib.getDocument({
           data: pdfUrl,
           cMapUrl:
@@ -59,10 +53,7 @@ export const usePdfOperations = () => {
         });
 
         const pdf = await loadingTask.promise;
-        console.log(
-          "[PDF Operations] PDF loaded successfully, pages:",
-          pdf.numPages
-        );
+
         return pdf;
       }
     } catch (error) {
@@ -74,30 +65,16 @@ export const usePdfOperations = () => {
   // Render a PDF page to canvas
   async function renderPdfPage(pdf, pageNumber, scale = 1.5) {
     try {
-      console.log("[PDF Operations] Starting renderPdfPage", {
-        pageNumber,
-        scale,
-      });
       const page = await pdf.getPage(pageNumber);
       const viewport = page.getViewport({ scale });
-      console.log("[PDF Operations] Created viewport:", {
-        width: viewport.width,
-        height: viewport.height,
-      });
 
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d", { alpha: false });
-      console.log("[PDF Operations] Canvas context created:", !!context);
 
       // Set display size
       const pixelRatio = window.devicePixelRatio || 1;
       canvas.style.width = `${viewport.width}px`;
       canvas.style.height = `${viewport.height}px`;
-      console.log("[PDF Operations] Display size set:", {
-        styleWidth: canvas.style.width,
-        styleHeight: canvas.style.height,
-        pixelRatio,
-      });
 
       // Set actual size in memory
       canvas.width = viewport.width * pixelRatio;
@@ -275,28 +252,9 @@ export const usePdfOperations = () => {
 
     const { width: pageWidth, height: pageHeight } = targetPage.getSize();
 
-    console.log("[generateCompositePdf] Page dimensions:", {
-      pageWidth,
-      pageHeight,
-    });
-    console.log(
-      "[generateCompositePdf] Processing fields:",
-      placedFields.length
-    );
-
     // Process each field
     for (const field of placedFields) {
       try {
-        console.log("[generateCompositePdf] Processing field:", {
-          name: field.name,
-          label: field.label,
-          x: field.x,
-          y: field.y,
-          width: field.width,
-          height: field.height,
-          hasSignature: !!field.signatureDataUrl,
-        });
-
         // Handle signature field
         if (field.signatureDataUrl) {
           const canvas = document.createElement("canvas");
@@ -326,8 +284,6 @@ export const usePdfOperations = () => {
             width: field.width,
             height: field.height,
           });
-
-          console.log("[generateCompositePdf] Signature rendered successfully");
         } else if (field.name === "Check Mark") {
           // For check marks, create a transparent canvas
           const canvas = document.createElement("canvas");
@@ -423,11 +379,6 @@ export const usePdfOperations = () => {
               width: field.width,
               height: field.height,
             });
-
-            console.log(
-              "[generateCompositePdf] Field rendered successfully:",
-              field.instanceId
-            );
           }
         }
       } catch (error) {
@@ -440,10 +391,7 @@ export const usePdfOperations = () => {
     }
 
     const modifiedPdfBytes = await pdfDoc.save();
-    console.log(
-      "[generateCompositePdf] PDF saved, size:",
-      modifiedPdfBytes.length
-    );
+
     return modifiedPdfBytes;
   }
 

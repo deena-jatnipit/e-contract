@@ -182,8 +182,6 @@ async function loadPdf() {
   try {
     pdfLoaded.value = false;
 
-    console.log("[PdfPreviewModal] Loading PDF from:", props.pdfUrl);
-
     // Initialize PDF.js
     const pdfjs = await initPdfJs();
 
@@ -194,8 +192,6 @@ async function loadPdf() {
 
     totalPages.value = loadedDoc.numPages;
     currentPage.value = 1;
-
-    console.log("[PdfPreviewModal] PDF loaded, pages:", totalPages.value);
 
     // Wait for DOM update
     await nextTick();
@@ -241,7 +237,6 @@ async function renderCurrentPage() {
     await nextTick();
     calculateScale();
 
-    console.log("[PdfPreviewModal] Page rendered:", pageNumber);
   } catch (error) {
     console.error("[PdfPreviewModal] Error rendering PDF page:", error);
   }
