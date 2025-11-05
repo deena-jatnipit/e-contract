@@ -572,7 +572,7 @@ async function sendSms(documentId, token) {
     const response = await $fetch("/api/sms/send-message", {
       method: "POST",
       body: {
-        msisdn: phoneNumber,
+        msisdn: phoneNumber.value,
         message,
       },
     });
